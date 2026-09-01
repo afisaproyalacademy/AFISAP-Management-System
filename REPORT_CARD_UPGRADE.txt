@@ -1,0 +1,16 @@
+AFISAP REPORT CARD UPGRADE
+
+Updated the existing Student Report Card only.
+
+Improvements:
+- Filters results by selected student and term (when term/year are present).
+- Displays only subjects with actual results.
+- Adds Grade column with fallback grading.
+- Calculates total and average from actual result records.
+- Uses saved Student/Guardian information.
+- Includes Admission Number when available.
+- Uses robust fee field names.
+- Preserves existing attendance, teacher and school sections.
+- Keeps the existing print-preview workflow.
+
+Google Sheets synchronization code was not changed.

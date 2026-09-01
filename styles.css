@@ -1,357 +1,2133 @@
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f6fa;color:#172236}
-.site-header{background:#071a3d;color:#fff}.topline{padding:10px 6vw;display:flex;gap:24px;justify-content:center;font-size:.82rem;background:#04122d;flex-wrap:wrap}
-.brandbar{padding:20px 6vw}.brand{display:flex;align-items:center;gap:16px}.brand img{width:78px;height:78px}
-.brand h1{margin:0;font-family:Georgia,serif;font-size:2rem}.brand p{margin:5px 0 0;color:#f4c85b;font-weight:800;letter-spacing:.12em;font-size:.78rem}
-.container{max-width:1120px;margin:auto;padding:28px 20px 60px}.hero{background:linear-gradient(135deg,#122b4e,#244b7b);color:#fff;border-radius:18px;padding:38px;margin-bottom:24px}
-.eyebrow{color:#f4c85b;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.12em}.hero h2{font-family:Georgia,serif;font-size:clamp(2rem,4vw,3.3rem);margin:.4rem 0 .7rem}
-.card{background:#fff;border:1px solid #dfe5ed;border-radius:16px;padding:26px;margin-bottom:20px;box-shadow:0 10px 28px #071a3d0b}
-.section-title{display:inline-block;background:#122b4e;color:#fff;padding:10px 18px;border-radius:8px;font-weight:900;margin-bottom:20px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}label{display:grid;gap:7px;font-weight:800;color:#122b4e}
-input,select,textarea{width:100%;border:1px solid #cfd7e2;border-radius:9px;padding:12px 13px;font:inherit;background:#fff;color:#172236}
-.full{grid-column:1/-1}.optional{font-weight:600;color:#536173;font-size:.82rem}
-.declaration{line-height:1.7;color:#465468;background:#f5f7fa;padding:16px;border-left:4px solid #e5a62b;border-radius:8px}
-.check{display:flex;align-items:center;gap:9px;margin:15px 0}.check input{width:auto}
-.automatic-declaration{display:grid;gap:10px;background:#f5f7fa;border:1px solid #dfe5ed;border-radius:10px;padding:16px;line-height:1.5}
-.automatic-declaration strong{color:#122b4e}
-.actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.btn{border:0;border-radius:9px;padding:13px 18px;font-weight:900;cursor:pointer}
-.btn.gold{background:#e5a62b;color:#071a3d}.btn.navy{background:#122b4e;color:#fff}.btn.secondary{background:#e9edf3;color:#122b4e}
-footer{background:#04122d;color:#d9e1ec;text-align:center;padding:28px 20px;font-size:.85rem}
-.application-grid{display:grid;grid-template-columns:1fr;gap:18px}.auto-field{background:#f5f7fa;border:1px solid #dfe5ed;border-radius:10px;padding:16px;display:grid;gap:6px}
-.auto-field span{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#536173;font-weight:800}.auto-field strong{font-size:1.1rem;color:#122b4e}
-.upload-field{display:grid;gap:8px}.file-preview{border:1px dashed #b8c4d3;border-radius:10px;background:#f8fafc;min-height:90px;padding:12px;color:#647184;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
-.selected-file{font-weight:900;color:#122b4e}.file-preview small{word-break:break-all;color:#647184}.preview-image{width:150px;max-height:190px;object-fit:contain;border-radius:8px;border:1px solid #d5dce6;background:#fff}
-.preview-pdf{width:100%;height:260px;border:1px solid #d5dce6;border-radius:8px;background:#fff}.remove-file{border:0;background:#e9edf3;color:#122b4e;border-radius:7px;padding:7px 10px;font-weight:800;cursor:pointer}
-@media(max-width:720px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
-@media print{body{background:#fff}.site-header,.hero,.actions,footer{display:none!important}.container{max-width:none;padding:0}.card{box-shadow:none;break-inside:avoid}.remove-file{display:none!important}@page{size:A4;margin:12mm}}
+:root{--navy:#17243b;--gold:#d6a52a;--bg:#f4f6f9;--line:#e1e5eb}*{box-sizing:border-box}body{margin:0;font:14px Arial;color:#202938;background:var(--bg)}aside{position:fixed;left:0;top:0;bottom:0;width:245px;background:var(--navy);color:#fff;padding:25px 15px}aside h2{margin:0;color:#fff}aside small{color:#c8cfda}nav{display:grid;gap:6px;margin-top:25px}nav button{border:0;background:transparent;color:#d8deea;text-align:left;padding:12px;border-radius:8px;cursor:pointer}nav button:hover,nav button.active{background:#ffffff14;color:#fff;border-left:3px solid var(--gold)}footer{position:absolute;bottom:25px;color:#bbc4d1;font-size:12px}main{margin-left:245px;padding:0 30px 50px}header{height:90px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}header h1{margin:4px 0}.primary{background:var(--navy);color:white;border:0;border-radius:8px;padding:11px 16px;cursor:pointer}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.stat strong{font-size:30px;display:block;margin-top:8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.actions button{padding:15px;background:#f8f9fb;border:1px solid var(--line);border-radius:8px}.toolbar{display:flex;gap:10px;margin:15px 0}.toolbar input{flex:1}input,select,textarea{width:100%;padding:10px;border:1px solid #d4d9e1;border-radius:7px;margin-top:6px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left}th{background:#eef1f5;font-size:12px}.table{overflow:auto;border:1px solid var(--line);border-radius:10px}.form{display:grid;grid-template-columns:1fr 1fr;gap:14px}.wide{grid-column:1/-1}.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.modalbox{background:#fff;border-radius:12px;padding:22px;width:min(650px,100%);max-height:90vh;overflow:auto}.modalbox h3{margin-top:0}.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{background:#eef1f5;padding:8px 10px;border-radius:20px}.report{background:#fff;padding:30px;margin-top:20px}.report table th{background:var(--navy);color:#fff}.empty{text-align:center;padding:30px;color:#77808d}.danger{border:0;background:#eee;padding:7px;border-radius:6px}@media(max-width:800px){aside{width:190px}main{margin-left:190px;padding:0 12px}.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.actions{grid-template-columns:1fr 1fr}}@media print{aside,header{display:none}main{margin:0}.report{margin:0}}
 
+/* V3 student/staff class selector */
+#studentClassSelect, .modalbox select[name="class"]{
+  appearance:auto;
+  background:#fff;
+  color:#17243b;
+  border:1px solid var(--line);
+  min-height:42px;
+  cursor:pointer;
+}
+#studentClassSelect option, .modalbox select[name="class"] option{
+  color:#17243b;
+  background:#fff;
+}
 
-/* Four-page professional admission print preview */
-.print-document { display:none; }
+/* Dashboard/UI styling inspired by the supplied school-management reference */
+:root{
+  --deep:#082f60;
+  --deep2:#0b3a71;
+  --navblue:#0b3a71;
+  --yellow:#f7c51b;
+  --surface:#ffffff;
+  --muted:#7a8594;
+  --border:#e4e8ee;
+}
+body{background:#f1f3f6;color:#273142}
+aside{background:var(--deep);width:250px;padding:0 0 20px;box-shadow:2px 0 8px rgba(0,0,0,.07)}
+.logo-panel{height:92px;background:var(--yellow);color:#17375f;display:flex;align-items:center;gap:10px;padding:0 18px}
+.logo-panel h2{margin:0;font-size:18px;line-height:1.05}
+.logo-panel small{font-size:10px;color:#334a67}
+.logo-badge{width:42px;height:42px;border-radius:50%;background:#fff;border:3px solid #17375f;display:grid;place-items:center;font-weight:900}
+aside nav{margin-top:8px;gap:0}
+nav button{border-radius:0;padding:12px 17px;border-left:3px solid transparent;font-size:12px}
+nav button:hover,nav button.active{background:#092b55;border-left-color:var(--yellow)}
+.nav-group-title{padding:15px 17px 7px;color:#8fa8c4;font-size:9px;font-weight:800;letter-spacing:1px}
+main{margin-left:250px;padding:0 25px 35px}
+header{height:78px;background:#fff;margin:0 -25px 22px;padding:0 25px;border-bottom:1px solid var(--border)}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-left small{font-size:9px;letter-spacing:1.4px;color:#7b8695}
+.header-left h1{font-size:22px;margin:2px 0 0}
+.header-right{display:flex;align-items:center;gap:16px}
+.search-pill{width:210px;background:#f5f6f8;border-radius:18px;padding:8px 12px;color:#9aa3ae;font-size:11px}
+.top-icon{position:relative;color:#66717f;font-size:15px}
+.top-icon b{font-size:8px;background:#f4c51c;color:#17375f;border-radius:10px;padding:2px 5px;position:absolute;top:-7px;right:-8px}
+.user-pill{display:flex;align-items:center;gap:8px;font-size:11px;color:#485465}
+.user-pill small{font-size:9px;color:#9aa3ae}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#f36f3d;color:#fff;font-weight:900}
+.menu-toggle{display:none}
+.dashboard-welcome{background:linear-gradient(120deg,#103f76,#1b5a99);color:#fff;padding:24px;border-radius:2px;display:flex;justify-content:space-between;align-items:center}
+.dashboard-welcome small{font-size:9px;letter-spacing:1.5px;color:#d3e3f5}
+.dashboard-welcome h2{margin:5px 0 7px;font-size:23px}
+.dashboard-welcome p{margin:0;color:#d8e4f2;font-size:12px}
+.welcome-buttons{display:flex;gap:8px}
+.light-btn{background:#fff;color:#123b6a;border:0;border-radius:3px;padding:9px 13px;font-weight:700;font-size:11px;cursor:pointer}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:18px 0}
+.metric-card{display:flex;align-items:center;background:#fff;min-height:94px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.metric-icon{width:72px;align-self:stretch;display:grid;place-items:center;color:#fff;font-size:26px}
+.metric-card.red .metric-icon{background:#f4515f}.metric-card.blue .metric-icon{background:#249fe5}.metric-card.green .metric-icon{background:#6dbd39}.metric-card.cyan .metric-icon{background:#29bac9}
+.metric-card>div:last-child{padding:12px 15px}.metric-card span{display:block;font-size:11px;color:#7c8794}.metric-card strong{display:block;font-size:26px;margin:5px 0;color:#263343}.metric-card small{font-size:9px;color:#a3aab3}
+.dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.dashboard-panel{padding:18px}
+.panel-title{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:11px;margin-bottom:10px}
+.panel-title h3{margin:0;font-size:14px}.panel-title span,.panel-title button{font-size:9px;color:#8e98a5;background:none;border:0}
+.quick-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.quick-actions button{border:1px solid var(--border);background:#fbfcfd;text-align:left;padding:12px 10px;cursor:pointer}
+.quick-actions b{display:block;color:#173d6d;font-size:11px}.quick-actions span{display:block;color:#8a94a1;font-size:9px;margin-top:4px}
+.notice-item{padding:9px 0;border-bottom:1px solid #edf0f3}.notice-item:last-child{border-bottom:0}.notice-item time{font-size:8px;color:#a2a9b2;display:block}.notice-item strong{font-size:11px;color:#1f3553}.notice-item p{margin:4px 0 0;font-size:9px;line-height:1.4;color:#737e8b}
+.bottom{align-items:start}
+.mini-list{display:grid}.mini-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #edf0f3}.mini-row:last-child{border-bottom:0}.mini-avatar{width:30px;height:30px;border-radius:50%;background:#e9eef5;color:#183e70;display:grid;place-items:center;font-weight:800;font-size:12px}.mini-row>div{flex:1}.mini-row b{display:block;font-size:10px}.mini-row small{display:block;font-size:8px;color:#9aa2ad;margin-top:3px}.status{font-size:8px;color:#2e8b57;background:#edf8f1;padding:4px 6px;border-radius:10px}
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.overview-grid div{border:1px solid var(--border);padding:12px}.overview-grid span{display:block;font-size:9px;color:#8a94a1}.overview-grid b{display:block;margin-top:5px;font-size:13px;color:#203a5d}
+.primary{background:#123e73}
+@media(max-width:900px){aside{transform:translateX(-100%);transition:.2s;z-index:30}.sidebar-open aside{transform:none}main{margin-left:0;padding:0 14px}.header-right .search-pill,.user-pill{display:none}.menu-toggle{display:block;border:0;background:#eef2f6;border-radius:4px;padding:7px}.metric-grid{grid-template-columns:1fr 1fr}.dashboard-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.metric-grid{grid-template-columns:1fr}.quick-actions{grid-template-columns:1fr 1fr}.dashboard-welcome{display:block}.welcome-buttons{margin-top:12px}}
+@media print{aside,header{display:none!important}.dashboard-welcome,.metric-grid{display:none!important}main{margin:0}.report{margin:0}}
 
-@media print {
-  @page { size: A4 portrait; margin: 0; }
-  html, body { margin:0!important; padding:0!important; background:#fff!important; }
-  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .site-header, .hero, #admissionForm > .card, .actions, footer { display:none!important; }
-  .print-document { display:block!important; width:210mm; }
-  .print-page {
-    width:210mm;
-    height:297mm;
-    box-sizing:border-box;
-    padding:9mm 11mm 10mm;
-    position:relative;
-    page-break-after:always;
-    break-after:page;
-    overflow:hidden;
-    background:#fff;
+.global-search-wrap{
+  display:flex;
+  align-items:center;
+  width:250px;
+  background:#f5f6f8;
+  border-radius:18px;
+  overflow:hidden;
+  border:1px solid #e4e8ee;
+}
+.global-search{
+  width:100%;
+  border:0;
+  outline:0;
+  background:transparent;
+  padding:8px 12px;
+  font-size:11px;
+  color:#344255;
+}
+.search-button{
+  border:0;
+  background:transparent;
+  padding:7px 10px;
+  cursor:pointer;
+  color:#6d7784;
+}
+.mail-button{
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  position:relative;
+}
+.mail-button:hover,.search-button:hover{color:#123e73}
+.global-search-results{
+  position:fixed;
+  top:74px;
+  right:28px;
+  width:min(560px, calc(100vw - 40px));
+  max-height:65vh;
+  overflow:auto;
+  background:#fff;
+  border:1px solid #dfe4ea;
+  border-radius:10px;
+  box-shadow:0 12px 28px rgba(0,0,0,.12);
+  z-index:100;
+  display:none;
+}
+.global-search-results.show{display:block}
+.search-result-head{
+  padding:12px 14px;
+  font-weight:800;
+  font-size:12px;
+  color:#183f70;
+  border-bottom:1px solid #edf0f3;
+}
+.search-result{
+  padding:10px 14px;
+  border-bottom:1px solid #f0f2f5;
+  cursor:pointer;
+}
+.search-result:hover{background:#f7f9fb}
+.search-result b{display:block;font-size:11px}
+.search-result small{display:block;color:#7c8794;font-size:9px;margin-top:3px}
+.search-empty{padding:18px;color:#7c8794;font-size:11px}
+@media(max-width:900px){.global-search-wrap{width:190px}}
+@media(max-width:600px){.global-search-wrap{display:none}}
+
+#notificationButton{border:0;background:transparent;cursor:pointer}
+.status{font-size:8px;color:#fff;padding:4px 7px;border-radius:10px}.status.paid{background:#2e9d63}.status.part-paid{background:#e4a82f}.status.due{background:#e45656}
+.paid-note{border-left:3px solid #2e9d63;padding-left:9px}.due-note{border-left:3px solid #e45656;padding-left:9px}
+
+#otherPositionWrap{display:grid!important}
+#otherPositionWrap[style*="display:none"]{display:none!important}
+
+.student-thumb{
+  width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #e5e8ee;
+  cursor:pointer;display:block;
+}
+.photo-placeholder{
+  width:44px;height:44px;border-radius:50%;border:1px dashed #cbd3dd;background:#f6f8fa;
+  color:#7d8896;cursor:pointer;
+}
+.photo-upload-preview{
+  margin-top:7px;min-height:100px;border:1px dashed #cbd3dd;border-radius:8px;
+  background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;padding:10px;color:#7b8795;font-size:10px;text-align:center;
+}
+.photo-upload-preview img{
+  width:110px;height:130px;object-fit:cover;border-radius:6px;border:1px solid #d8dee6;
+}
+.upload-help{font-size:9px;color:#8b95a1;margin-top:3px}
+.student-photo-modal{text-align:center;padding:8px}
+.student-photo-modal img{width:220px;height:270px;object-fit:cover;border-radius:8px;border:1px solid #d8dee6}
+.student-photo-modal h3{margin:12px 0 4px}.student-photo-modal p{margin:0;color:#7c8794;font-size:12px}
+.mini-avatar-img{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block}
+
+.student-photo-field{grid-column:1/-1}
+.student-photo-field>input[type=file]{
+  display:block;width:100%;padding:10px;background:#fff;
+  border:1px solid #d7dde6;border-radius:7px;
+}
+.photo-upload-preview{
+  width:190px;min-height:200px;margin-top:8px;
+  border:2px dashed #c9d2de;border-radius:10px;background:#f7f9fb;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:6px;padding:10px;text-align:center;overflow:hidden;
+}
+.photo-upload-preview img{
+  width:145px;height:165px;object-fit:cover;border-radius:7px;
+  border:1px solid #d3dae4;
+}
+.photo-preview-placeholder{font-size:11px;color:#7b8794}
+.photo-preview-name{font-size:9px;color:#5f6b79;word-break:break-all;max-width:160px}
+.photo-preview-ok{font-size:10px;font-weight:800;color:#2e8b57}
+.photo-error{font-size:10px;color:#c44949;font-weight:700}
+.student-thumb{
+  width:44px;height:50px;border-radius:6px;object-fit:cover;
+  border:2px solid #e5e8ee;cursor:pointer;display:block;
+}
+.photo-placeholder{
+  width:44px;height:50px;border-radius:6px;border:1px dashed #cbd3dd;
+  background:#f6f8fa;color:#7d8896;cursor:pointer;
+}
+.student-photo-modal{text-align:center;padding:8px}
+.student-photo-modal img{
+  width:220px;height:270px;object-fit:cover;border-radius:8px;
+  border:1px solid #d8dee6;
+}
+.student-photo-modal h3{margin:12px 0 4px}
+.student-photo-modal p{margin:0;color:#7c8794;font-size:12px}
+.mini-avatar-img{width:30px;height:30px;border-radius:50%;object-fit:cover;display:block}
+
+.staff-photo-preview{width:190px;min-height:200px}
+.staff-thumb{
+  width:44px;height:50px;border-radius:6px;object-fit:cover;
+  border:2px solid #e5e8ee;cursor:pointer;display:block;
+}
+.staff-photo-placeholder{
+  width:44px;height:50px;border-radius:6px;border:1px dashed #cbd3dd;
+  background:#f6f8fa;color:#7d8896;cursor:pointer;
+}
+
+.result-student-card{
+  display:flex;align-items:center;gap:18px;
+  border:1px solid #dfe5ec;background:#fbfcfd;
+  border-radius:10px;padding:14px;
+}
+.result-student-photo{
+  width:86px;height:100px;border-radius:8px;border:1px solid #d8dee7;
+  background:#f0f3f6;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;color:#8994a1;font-size:25px;flex:none;
+}
+.result-student-photo img{
+  width:100%;height:100%;object-fit:cover;
+}
+.result-student-info{flex:1}
+.result-label{display:block;font-size:9px;font-weight:800;color:#8a95a3;letter-spacing:.8px;margin-bottom:5px}
+.result-student-info select{width:100%;max-width:420px;padding:10px;border:1px solid #d8dfe7;border-radius:7px;background:#fff}
+.result-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;font-size:10px;color:#6f7a88}
+.result-meta strong{color:#183f70}
+.result-meta span{color:#7b8591}
+.result-thumb{width:36px;height:42px;object-fit:cover;border-radius:5px;border:1px solid #d7dee7}
+.result-no-photo{color:#9aa3ad}
+@media(max-width:600px){.result-student-card{align-items:flex-start}.result-student-photo{width:70px;height:85px}}
+
+.attendance-header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.attendance-header h3{margin:0}.attendance-header p{margin:5px 0 0}
+.attendance-controls{grid-template-columns:180px 170px;align-items:end}
+.attendance-roster{margin-top:20px}
+.attendance-summary{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f6f8fa;border:1px solid #e2e7ee;border-radius:8px;margin-bottom:10px;font-size:11px;color:#657182}
+.attendance-table{border:1px solid #e2e7ee;border-radius:10px;overflow:hidden;background:#fff}
+.attendance-row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #edf0f3;gap:20px}
+.attendance-row:last-child{border-bottom:0}
+.attendance-student{display:flex;align-items:center;gap:12px;min-width:0}
+.attendance-photo{width:48px;height:58px;border-radius:6px;border:1px solid #d7dee7;background:#f5f7f9;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#8b95a1;flex:none}
+.attendance-photo img{width:100%;height:100%;object-fit:cover}
+.attendance-student strong{display:block;font-size:11px}
+.attendance-student small{display:block;color:#8a95a3;font-size:9px;margin-top:4px}
+.attendance-status{display:flex;gap:7px}
+.attendance-btn{border:1px solid #d8dfe7;background:#f7f9fb;color:#5b6775;padding:8px 12px;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer}
+.attendance-btn.present.selected{background:#2e9d63;color:#fff;border-color:#2e9d63}
+.attendance-btn.absent.selected{background:#e45656;color:#fff;border-color:#e45656}
+.attendance-actions{margin-top:14px;display:flex;justify-content:flex-end}
+@media(max-width:700px){.attendance-header{display:block}.attendance-controls{grid-template-columns:1fr 1fr;margin-top:14px}.attendance-row{align-items:flex-start}.attendance-status{flex-direction:column}}
+
+.edit-btn{margin-right:5px}
+
+/* Separate surname, first name and middle/other name fields */
+
+/* Attendance student-linked register */
+.attendance-controls{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
+.attendance-controls label{
+  min-width:220px;
+}
+.attendance-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.attendance-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:14px;
+  border:1px solid rgba(0,0,0,.10);
+  border-radius:12px;
+  background:#fff;
+}
+.attendance-student{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:240px;
+}
+.attendance-student-photo{
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  object-fit:cover;
+  border:1px solid rgba(0,0,0,.12);
+  flex:0 0 52px;
+}
+.attendance-student-photo.placeholder{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f1f1f1;
+  font-size:24px;
+}
+.attendance-question{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.attendance-choice{
+  cursor:pointer;
+}
+.attendance-choice input{
+  margin-right:5px;
+}
+.attendance-choice span{
+  display:inline-block;
+  padding:8px 14px;
+  border:1px solid rgba(0,0,0,.15);
+  border-radius:8px;
+  font-weight:700;
+}
+.attendance-choice input:checked + span{
+  outline:2px solid currentColor;
+}
+.muted{
+  opacity:.7;
+  font-size:.9em;
+}
+.empty-state{
+  padding:24px;
+  text-align:center;
+  border:1px dashed rgba(0,0,0,.2);
+  border-radius:12px;
+}
+@media (max-width:700px){
+  .attendance-row{
+    flex-direction:column;
+    align-items:stretch;
   }
-  .print-page:last-child { page-break-after:auto; break-after:auto; }
-  .print-header-image {
-    display:block;
-    width:100%;
-    height:57mm;
-    object-fit:contain;
-    object-position:center top;
-    margin:0 0 4mm;
-  }
-  .print-page-title {
-    text-align:center;
-    font-size:15pt;
-    font-weight:800;
-    letter-spacing:.3px;
-    margin:1mm 0 3mm;
-    padding:2.2mm 3mm;
-    border:1px solid #172b52;
-    background:#f7f7f7;
-  }
-  .print-meta {
-    display:grid;
-    grid-template-columns:1.4fr 1fr 1fr;
-    gap:3mm;
-    border:1px solid #d8b35a;
-    padding:3mm;
-    margin-bottom:4mm;
-    font-size:9.5pt;
-  }
-  .print-section-title {
-    background:#172b52;
-    color:#fff;
-    font-weight:800;
-    text-align:center;
-    padding:2.2mm;
-    margin:0 0 4mm;
-    font-size:11pt;
-    letter-spacing:.2px;
-  }
-  .print-grid {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:0;
-    border-top:1px solid #cfcfcf;
-    border-left:1px solid #cfcfcf;
-  }
-  .print-grid > div {
-    min-height:10.5mm;
-    padding:2.2mm;
-    border-right:1px solid #cfcfcf;
-    border-bottom:1px solid #cfcfcf;
-    font-size:9.2pt;
-    box-sizing:border-box;
-  }
-  .print-grid > .wide { grid-column:1 / -1; }
-  .print-grid b { display:block; font-size:8pt; margin-bottom:1mm; }
-  .print-grid span { display:block; min-height:4mm; word-break:break-word; }
-  .photo-row { display:grid; grid-template-columns:1fr 1fr; gap:8mm; margin-top:7mm; }
-  .photo-box, .document-box {
-    border:1px solid #c9c9c9;
-    padding:4mm;
-    box-sizing:border-box;
-    min-height:82mm;
-  }
-  .photo-title {
-    text-align:center;
-    font-size:8.5pt;
-    font-weight:800;
-    margin-bottom:3mm;
-  }
-  .print-photo {
-    height:65mm;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    border:1px solid #ddd;
-  }
-  .print-photo img {
-    max-width:100%;
-    max-height:100%;
-    object-fit:contain;
-  }
-  .document-row { display:grid; grid-template-columns:1fr 1fr; gap:8mm; }
-  .document-box { min-height:115mm; }
-  .document-preview {
-    height:95mm;
-    border:1px solid #ddd;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    text-align:center;
-    font-size:9pt;
-  }
-  .document-preview img { max-width:100%; max-height:100%; object-fit:contain; }
-  .document-preview iframe { width:100%; height:100%; border:0; }
-  .document-note {
-    margin-top:7mm;
-    border:1px solid #ddd;
-    padding:4mm;
-    font-size:8.5pt;
-  }
-  .print-declaration {
-    font-size:11pt;
-    line-height:1.65;
-    text-align:justify;
-    border:1px solid #d8b35a;
-    padding:7mm;
-    margin:0 0 9mm;
-  }
-  .declaration-summary {
-    border:1px solid #cfcfcf;
-    padding:5mm;
-    font-size:10pt;
-    line-height:1.9;
-  }
-  .signature-grid {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20mm;
-    margin:25mm 10mm 12mm;
-  }
-  .signature-line {
-    border-top:1px solid #333;
-    padding-top:2mm;
-    text-align:center;
-    font-size:8.5pt;
-  }
-  .print-final-summary {
-    border:1px solid #d8b35a;
-    padding:4mm;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:4mm;
-    font-size:9pt;
-  }
-  .print-page-footer {
-    position:absolute;
-    bottom:6mm;
-    left:11mm;
-    right:11mm;
-    border-top:1px solid #d8b35a;
-    padding-top:2.5mm;
-    text-align:center;
-    font-size:7.5pt;
-    font-weight:700;
+  .attendance-question{
+    justify-content:flex-start;
   }
 }
 
-/* Admissions Portal header, social links and instruction panel */
-.socialbar{
+.attendance-save-area{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid rgba(0,0,0,.10);
+}
+.attendance-save-btn{
+  min-width:180px;
+  font-weight:700;
+}
+.attendance-save-btn:disabled{
+  opacity:.75;
+  cursor:default;
+}
+
+.attendance-dates-cell{min-width:160px;line-height:1.6;white-space:normal;}
+
+
+/* Teacher Attendance - additive V3 feature */
+.staff-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.teacher-attendance-btn{border:1px solid #d7dee7;background:#fff;color:#123e73;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:700}
+.teacher-attendance-btn:hover{background:#f3f7fb}
+.teacher-attendance-controls{display:grid;grid-template-columns:minmax(220px,340px) 180px;gap:18px;align-items:end}
+.teacher-attendance-controls label{font-weight:700}
+.teacher-attendance-summary{border:1px solid var(--border);background:#f8fafc;padding:10px 14px;border-radius:8px}
+.teacher-attendance-summary strong{display:block;font-size:22px;color:#123e73}
+.teacher-attendance-summary span{font-size:10px;color:#7c8794}
+.teacher-attendance-row{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:15px 0;border-bottom:1px solid #edf0f3}
+.teacher-attendance-row:last-child{border-bottom:0}
+.teacher-attendance-person{display:flex;align-items:center;gap:13px;min-width:0}
+.staff-attendance-photo,.staff-attendance-photo-placeholder,.staff-attendance-thumb,.staff-attendance-placeholder{width:54px;height:54px;border-radius:50%;object-fit:cover;flex:0 0 54px}
+.staff-attendance-photo,.staff-attendance-photo-placeholder{border:1px solid #dce2e9}
+.staff-attendance-photo-placeholder,.staff-attendance-placeholder{display:grid;place-items:center;background:#f4f6f8;color:#7d8896}
+.staff-attendance-thumb{border:2px solid #e5e8ee}
+.teacher-attendance-info{min-width:0}
+.teacher-attendance-info strong{display:block;font-size:13px;color:#203a5d}
+.teacher-attendance-info div{font-size:10px;color:#788493;margin-top:4px;white-space:normal}
+.teacher-attendance-choice{text-align:right;min-width:280px}
+.teacher-attendance-choice>strong{display:block;font-size:11px;color:#273142;margin-bottom:8px}
+.teacher-attendance-choice label{margin-left:14px;font-size:12px;cursor:pointer}
+.teacher-attendance-choice input{width:auto;margin:0 4px 0 0;padding:0}
+.teacher-attendance-choice small{display:block;color:#8a94a1;font-size:9px;margin-top:6px}
+@media(max-width:800px){
+  .teacher-attendance-controls{grid-template-columns:1fr}
+  .teacher-attendance-row{align-items:flex-start;flex-direction:column}
+  .teacher-attendance-choice{min-width:0;width:100%;text-align:left}
+  .teacher-attendance-choice label:first-child{margin-left:0}
+}
+
+
+/* AFISAP Royal Academy branding - uses the supplied official logo asset */
+.logo-panel{
+  height:112px;
+  background:var(--yellow);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 12px;
+  overflow:hidden;
+}
+.school-logo-sidebar{
+  width:92px;
+  height:92px;
+  object-fit:contain;
+  display:block;
+  border-radius:50%;
+  background:#fff;
+}
+
+/* Keep the supplied logo clearly visible inside the blue dashboard banner. */
+.dashboard-welcome{
+  position:relative;
+  overflow:hidden;
+}
+.dashboard-welcome-content{
+  position:relative;
+  z-index:2;
+  max-width:58%;
+}
+.dashboard-branding{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-width:245px;
+}
+.dashboard-watermark-logo{
+  width:112px;
+  height:112px;
+  object-fit:contain;
+  display:block;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.dashboard-welcome::after{
+  content:"";
+  position:absolute;
+  right:10px;
+  top:50%;
+  width:175px;
+  height:175px;
+  transform:translateY(-50%);
+  background:url("afisap_royal_academy_logo.png") center/contain no-repeat;
+  opacity:.10;
+  pointer-events:none;
+}
+@media(max-width:700px){
+  .logo-panel{height:92px}
+  .school-logo-sidebar{width:72px;height:72px}
+  .dashboard-welcome{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:18px;
+  }
+  .dashboard-welcome-content{max-width:100%}
+  .dashboard-branding{
+    width:100%;
+    min-width:0;
+    align-items:flex-start;
+  }
+  .dashboard-watermark-logo{width:92px;height:92px}
+  .dashboard-welcome::after{
+    width:130px;height:130px;right:0;bottom:5px;top:auto;transform:none;
+  }
+}
+
+/* Teacher attendance print preview */
+.teacher-print-modalbox{
+  width:min(1400px,96vw);
+  max-width:96vw;
+  max-height:94vh;
+  padding:0;
+  overflow:auto;
+}
+.teacher-print-preview{
+  background:#fff;
+  color:#17243b;
+  padding:24px;
+}
+.teacher-print-preview-head{
   display:flex;
   align-items:center;
   justify-content:center;
   gap:18px;
+  text-align:center;
+  border-bottom:3px solid var(--gold);
+  padding-bottom:14px;
+}
+.teacher-print-logo{
+  width:82px;
+  height:82px;
+  object-fit:contain;
+}
+.teacher-print-preview-head h2,
+.teacher-print-preview-head h3,
+.teacher-print-preview-head p{margin:2px 0}
+.teacher-print-preview-head h2{font-size:22px}
+.teacher-print-preview-head h3{font-size:17px}
+.teacher-print-preview-head p{font-size:12px;color:#667085}
+.teacher-print-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  font-size:12px;
   flex-wrap:wrap;
-  padding:9px 5vw;
-  background:#e5a62b;
-  color:#071a3d;
-  font-size:.82rem;
-  font-weight:800;
 }
-.socialbar a{
-  color:#071a3d;
-  text-decoration:none;
-  padding:4px 7px;
-  border-radius:5px;
+.teacher-print-table-wrap{overflow-x:auto}
+.teacher-print-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:11px;
 }
-.socialbar a:hover{
-  background:#fff;
+.teacher-print-table th,
+.teacher-print-table td{
+  border:1px solid #cfd5dd;
+  padding:7px;
+  vertical-align:middle;
 }
-.social-label{
-  font-weight:900;
-  letter-spacing:.04em;
+.teacher-print-table th{
+  background:var(--navy);
+  color:#fff;
+  text-align:center;
+  white-space:nowrap;
 }
-.brandbar{
-  position:relative;
-  min-height:128px;
+.teacher-print-table td:nth-child(1){width:70px;text-align:center}
+.teacher-print-table td:nth-child(8){text-align:center;font-weight:bold;white-space:nowrap}
+.teacher-print-photo{
+  width:52px;
+  height:62px;
+  object-fit:cover;
+  border-radius:4px;
+  border:1px solid #cfd5dd;
+  display:block;
+  margin:auto;
+}
+.teacher-print-photo-empty{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:22px 9vw;
+  background:#f1f3f5;
+  color:#667085;
+  font-size:9px;
 }
-.brand{
+.teacher-print-dates{
+  line-height:1.5;
+  min-width:90px;
+}
+.teacher-print-subinfo{
+  display:block;
+  color:#667085;
+  font-size:9px;
+  margin-top:3px;
+}
+.teacher-print-footer{
+  margin-top:16px;
+  font-size:10px;
+  color:#4b5563;
+}
+.teacher-print-signatures{
+  display:flex;
+  justify-content:space-between;
+  gap:25px;
+  margin-top:30px;
+  color:#17243b;
+}
+.teacher-print-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  padding:16px 0 0;
+  margin-top:16px;
+  border-top:1px solid var(--line);
+}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body.printing-teacher-attendance{
+    background:#fff;
+  }
+  body.printing-teacher-attendance aside,
+  body.printing-teacher-attendance header,
+  body.printing-teacher-attendance main > #app{
+    display:none !important;
+  }
+  body.printing-teacher-attendance #modal{
+    display:flex !important;
+    position:static !important;
+    inset:auto !important;
+    padding:0 !important;
+    background:#fff !important;
+    overflow:visible !important;
+  }
+  body.printing-teacher-attendance #modal .teacher-print-modalbox{
+    display:block !important;
+    width:100% !important;
+    max-width:none !important;
+    max-height:none !important;
+    overflow:visible !important;
+    padding:0 !important;
+    box-shadow:none !important;
+    border:0 !important;
+  }
+  body.printing-teacher-attendance .teacher-print-preview{
+    padding:0 !important;
+  }
+  body.printing-teacher-attendance .teacher-print-actions{
+    display:none !important;
+  }
+  body.printing-teacher-attendance .teacher-print-table{
+    font-size:9px;
+  }
+  body.printing-teacher-attendance .teacher-print-table th,
+  body.printing-teacher-attendance .teacher-print-table td{
+    padding:5px;
+  }
+  body.printing-teacher-attendance .teacher-print-photo{
+    width:45px;
+    height:55px;
+  }
+}
+
+
+/* Clear printer controls for Teacher Attendance */
+.teacher-print-preview-btn,
+.teacher-print-action-btn{
+  display:inline-flex;
+  align-items:center;
   justify-content:center;
+  gap:9px;
+  font-weight:800;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.teacher-print-preview-btn{
+  min-height:42px;
+  padding:10px 16px;
+}
+.printer-icon{
+  display:inline-flex;
+  width:21px;
+  height:21px;
+  flex:0 0 21px;
+  align-items:center;
+  justify-content:center;
+}
+.printer-icon svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.teacher-print-preview-btn:hover .printer-icon,
+.teacher-print-action-btn:hover .printer-icon{
+  transform:translateY(-1px);
+}
+.teacher-print-preview-btn:focus-visible,
+.teacher-print-action-btn:focus-visible{
+  outline:3px solid rgba(18,62,115,.25);
+  outline-offset:2px;
+}
+@media(max-width:600px){
+  .teacher-print-preview-btn span:last-child{
+    display:none;
+  }
+  .teacher-print-preview-btn{
+    min-width:44px;
+    padding:10px 12px;
+  }
+}
+
+
+.teacher-print-school-details{
+  min-width:0;
+}
+.teacher-print-contact{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:4px 14px;
+  font-size:9px;
+  color:#334155;
+  margin-top:6px!important;
+}
+.teacher-print-contact span{
+  white-space:nowrap;
+}
+
+
+/* Final Teacher Attendance native-browser print layout */
+.teacher-print-preview{
+  position:relative;
+  overflow:hidden;
+}
+.teacher-print-preview-head{
+  position:relative;
+  z-index:2;
+  justify-content:flex-start!important;
+}
+.teacher-print-school-details{
+  flex:1;
   text-align:center;
 }
-.corner-logo{
-  position:absolute;
-  top:16px;
-  width:92px;
-  height:92px;
-  object-fit:contain;
+.teacher-print-watermark{
+  position:absolute!important;
+  left:50%!important;
+  top:53%!important;
+  width:260px!important;
+  height:260px!important;
+  object-fit:contain!important;
+  transform:translate(-50%,-50%)!important;
+  opacity:.075!important;
+  z-index:0!important;
+  pointer-events:none!important;
 }
-.left-logo{left:5vw}
-.right-logo{right:5vw}
-.admission-instructions{
-  margin-top:18px;
-  background:rgba(255,255,255,.10);
-  border:1px solid rgba(255,255,255,.25);
-  border-radius:12px;
-  padding:16px 20px;
-  line-height:1.55;
+.teacher-print-preview > *:not(.teacher-print-watermark){
+  position:relative;
+  z-index:2;
 }
-.admission-instructions h3{
-  margin:0 0 8px;
-  color:#f4c85b;
-  font-size:1rem;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-}
-.admission-instructions p{
-  margin:0 0 7px;
-}
-.admission-instructions ol{
-  margin:6px 0 0 20px;
-  padding:0;
-}
-.admission-instructions li{
-  margin:4px 0;
-}
-@media(max-width:720px){
-  .socialbar{gap:8px;font-size:.72rem}
-  .social-label{width:100%;text-align:center}
-  .brandbar{padding:20px 92px;min-height:116px}
-  .corner-logo{width:66px;height:66px;top:25px}
-  .left-logo{left:14px}
-  .right-logo{right:14px}
-  .brand h1{font-size:1.35rem}
-  .brand p{font-size:.65rem}
+
+@media print{
+  @page{
+    size:A4 landscape;
+    margin:8mm;
+  }
+
+  html,body{
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  body.printing-teacher-attendance{
+    background:#fff!important;
+    color:#17243b!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+
+  /* Keep only the attendance print sheet in the browser's native Print Preview. */
+  body.printing-teacher-attendance aside,
+  body.printing-teacher-attendance header,
+  body.printing-teacher-attendance main,
+  body.printing-teacher-attendance main > #app{
+    display:none!important;
+  }
+
+  body.printing-teacher-attendance #modal{
+    display:block!important;
+    position:static!important;
+    inset:auto!important;
+    width:auto!important;
+    height:auto!important;
+    min-height:0!important;
+    padding:0!important;
+    margin:0!important;
+    background:#fff!important;
+    overflow:visible!important;
+  }
+
+  body.printing-teacher-attendance #modal .teacher-print-modalbox{
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    height:auto!important;
+    overflow:visible!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-preview{
+    display:block!important;
+    position:relative!important;
+    width:100%!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    background:#fff!important;
+    color:#17243b!important;
+  }
+
+  /* Logo is deliberately on the LEFT of the school information. */
+  body.printing-teacher-attendance .teacher-print-preview-head{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:18px!important;
+    text-align:center!important;
+    padding:0 0 12px!important;
+    border-bottom:3px solid #d7aa08!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-logo{
+    flex:0 0 78px!important;
+    width:78px!important;
+    height:78px!important;
+    object-fit:contain!important;
+    margin:0!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-school-details{
+    flex:1!important;
+    text-align:center!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-school-details h2{
+    font-size:21px!important;
+    margin:0 0 3px!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-school-details h3{
+    font-size:15px!important;
+    margin:2px 0!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-contact{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    justify-content:center!important;
+    gap:4px 14px!important;
+    font-size:9px!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-contact span{
+    white-space:nowrap!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-meta{
+    display:flex!important;
+    justify-content:space-between!important;
+    gap:12px!important;
+    padding:9px 0!important;
+    font-size:10px!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-table-wrap{
+    overflow:visible!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-table{
+    width:100%!important;
+    border-collapse:collapse!important;
+    font-size:8.5px!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-table th,
+  body.printing-teacher-attendance .teacher-print-table td{
+    border:1px solid #aeb6c2!important;
+    padding:5px!important;
+    vertical-align:middle!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-table th{
+    background:#0b3a71!important;
+    color:#fff!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-photo{
+    width:44px!important;
+    height:54px!important;
+    object-fit:cover!important;
+  }
+
+  /* Visible, centered school-logo watermark behind the report content. */
+  body.printing-teacher-attendance .teacher-print-watermark{
+    display:block!important;
+    position:absolute!important;
+    left:50%!important;
+    top:55%!important;
+    width:270px!important;
+    height:270px!important;
+    transform:translate(-50%,-50%)!important;
+    object-fit:contain!important;
+    opacity:.075!important;
+    z-index:0!important;
+    pointer-events:none!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-preview > *:not(.teacher-print-watermark){
+    position:relative!important;
+    z-index:2!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-actions{
+    display:none!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-footer{
+    margin-top:12px!important;
+    font-size:9px!important;
+  }
+
+  body.printing-teacher-attendance .teacher-print-signatures{
+    display:flex!important;
+    justify-content:space-between!important;
+    gap:20px!important;
+    margin-top:22px!important;
+  }
 }
 
 
-/* Admission gallery watermark slideshow — visible behind the portal */
-.admission-watermark{
-  position:fixed;
-  inset:0;
-  z-index:0;
+/* Final native browser printing fix */
+@media print{
+  body.printing-teacher-attendance{
+    visibility:visible!important;
+    overflow:visible!important;
+  }
+  body.printing-teacher-attendance aside,
+  body.printing-teacher-attendance header,
+  body.printing-teacher-attendance main{
+    display:none!important;
+    visibility:hidden!important;
+  }
+  body.printing-teacher-attendance #modal{
+    display:block!important;
+    visibility:visible!important;
+    position:static!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+    overflow:visible!important;
+  }
+  body.printing-teacher-attendance #modal .teacher-print-modalbox,
+  body.printing-teacher-attendance #modal .teacher-print-preview{
+    display:block!important;
+    visibility:visible!important;
+    position:relative!important;
+    width:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    opacity:1!important;
+    transform:none!important;
+    box-shadow:none!important;
+    border:0!important;
+  }
+  body.printing-teacher-attendance .teacher-print-actions{
+    display:none!important;
+    visibility:hidden!important;
+  }
+  body.printing-teacher-attendance .teacher-print-watermark{
+    display:block!important;
+    visibility:visible!important;
+  }
+}
+
+
+/* Student Attendance print control */
+.student-attendance-print-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  font-weight:800;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.student-attendance-print-btn .printer-icon{
+  display:inline-flex;
+  width:21px;
+  height:21px;
+  align-items:center;
+  justify-content:center;
+}
+.student-attendance-print-btn .printer-icon svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+
+/* Student Attendance in-system print preview */
+.student-attendance-preview-modal{
+  width:min(1200px,96vw)!important;
+  max-width:1200px!important;
+  max-height:92vh!important;
+  overflow:auto!important;
+  padding:18px!important;
+}
+.student-preview-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:#fff;
+  padding-bottom:10px;
+  border-bottom:1px solid #e5e7eb;
+}
+.student-preview-toolbar h3{margin:0}
+.student-browser-print-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.student-browser-print-btn .printer-icon{
+  display:inline-flex;
+  width:21px;
+  height:21px;
+}
+.student-browser-print-btn .printer-icon svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.student-preview-paper{
+  background:#fff;
+  border:1px solid #d7dce3;
+  padding:16px;
+  overflow:auto;
+}
+.student-preview-paper .student-attendance-print-report{
+  position:relative;
+  min-width:1000px;
+}
+
+/* FINAL: Student Attendance native browser print */
+@media print{
+  @page{
+    size:A4 landscape;
+    margin:8mm;
+  }
+
+  html,body{
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  body.printing-student-attendance{
+    background:#fff!important;
+    color:#17243b!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+    overflow:visible!important;
+  }
+
+  body.printing-student-attendance aside,
+  body.printing-student-attendance header,
+  body.printing-student-attendance main,
+  body.printing-student-attendance #app{
+    display:none!important;
+    visibility:hidden!important;
+  }
+
+  body.printing-student-attendance #modal{
+    display:block!important;
+    visibility:visible!important;
+    position:static!important;
+    inset:auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+    overflow:visible!important;
+  }
+
+  body.printing-student-attendance #modal .student-attendance-preview-modal{
+    display:block!important;
+    visibility:visible!important;
+    position:static!important;
+    width:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+
+  body.printing-student-attendance .student-preview-toolbar,
+  body.printing-student-attendance #closeStudentAttendancePreview{
+    display:none!important;
+    visibility:hidden!important;
+  }
+
+  body.printing-student-attendance .student-preview-paper{
+    display:block!important;
+    visibility:visible!important;
+    position:static!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+
+  body.printing-student-attendance .student-attendance-print-report{
+    display:block!important;
+    visibility:visible!important;
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+
+  body.printing-student-attendance .student-print-header{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:18px!important;
+    position:relative!important;
+    z-index:2!important;
+    padding:0 0 12px!important;
+    border-bottom:3px solid #d7aa08!important;
+    text-align:center!important;
+  }
+
+  body.printing-student-attendance .student-print-logo{
+    display:block!important;
+    width:78px!important;
+    height:78px!important;
+    flex:0 0 78px!important;
+    object-fit:contain!important;
+  }
+
+  body.printing-student-attendance .student-print-school-details{
+    display:block!important;
+    flex:1!important;
+    text-align:center!important;
+  }
+
+  body.printing-student-attendance .student-print-contact{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    justify-content:center!important;
+    gap:4px 14px!important;
+    font-size:9px!important;
+  }
+
+  body.printing-student-attendance .student-print-meta{
+    display:flex!important;
+    position:relative!important;
+    z-index:2!important;
+    justify-content:space-between!important;
+    padding:9px 0!important;
+    font-size:10px!important;
+  }
+
+  body.printing-student-attendance .student-print-table{
+    display:table!important;
+    position:relative!important;
+    z-index:2!important;
+    width:100%!important;
+    border-collapse:collapse!important;
+    font-size:8.5px!important;
+  }
+
+  body.printing-student-attendance .student-print-table th,
+  body.printing-student-attendance .student-print-table td{
+    border:1px solid #aeb6c2!important;
+    padding:5px!important;
+    vertical-align:middle!important;
+  }
+
+  body.printing-student-attendance .student-print-table th{
+    background:#0b3a71!important;
+    color:#fff!important;
+  }
+
+  body.printing-student-attendance .student-print-photo{
+    width:44px!important;
+    height:54px!important;
+    object-fit:cover!important;
+  }
+
+  body.printing-student-attendance .student-print-watermark{
+    display:block!important;
+    visibility:visible!important;
+    position:absolute!important;
+    left:50%!important;
+    top:55%!important;
+    width:270px!important;
+    height:270px!important;
+    transform:translate(-50%,-50%)!important;
+    object-fit:contain!important;
+    opacity:.075!important;
+    z-index:0!important;
+  }
+
+  body.printing-student-attendance .student-print-footer{
+    display:block!important;
+    position:relative!important;
+    z-index:2!important;
+  }
+}
+
+
+/* Student Attendance Print Preview — same structure as supplied Teacher Attendance Sheet,
+   with student fields only. */
+.student-print-preview{
+  background:#fff;
+  color:#17243b;
+  padding:24px;
+  position:relative;
   overflow:hidden;
-  pointer-events:none;
-  background:#eef2f7;
 }
-.admission-watermark-slideshow{
-  position:absolute;
-  inset:0;
+.student-print-preview-head{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:18px;
+  text-align:center;
+  border-bottom:3px solid var(--gold);
+  padding-bottom:14px;
+  position:relative;
+  z-index:2;
+}
+.student-print-logo{
+  width:82px;
+  height:82px;
+  object-fit:contain;
+  flex:0 0 82px;
+}
+.student-print-school-details{
+  flex:1;
+  min-width:0;
+  text-align:center;
+}
+.student-print-preview-head h2,
+.student-print-preview-head h3,
+.student-print-preview-head p{margin:2px 0}
+.student-print-preview-head h2{font-size:22px}
+.student-print-preview-head h3{font-size:17px}
+.student-print-preview-head p{font-size:12px;color:#667085}
+.student-print-contact{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:4px 14px;
+  font-size:9px;
+  color:#334155;
+  margin-top:6px!important;
+}
+.student-print-contact span{white-space:nowrap}
+.student-print-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  font-size:12px;
+  flex-wrap:wrap;
+  position:relative;
+  z-index:2;
+}
+.student-print-table-wrap{overflow-x:auto;position:relative;z-index:2}
+.student-print-table{
   width:100%;
-  height:100%;
+  border-collapse:collapse;
+  font-size:11px;
 }
-.admission-watermark-slideshow img{
+.student-print-table th,
+.student-print-table td{
+  border:1px solid #cfd5dd;
+  padding:7px;
+  vertical-align:middle;
+}
+.student-print-table th{
+  background:var(--navy);
+  color:#fff;
+  text-align:center;
+  white-space:nowrap;
+}
+.student-print-table td:first-child{width:70px;text-align:center}
+.student-print-table td:nth-child(5){text-align:center;font-weight:bold;white-space:nowrap}
+.student-print-photo{
+  width:52px;
+  height:62px;
+  object-fit:cover;
+  border-radius:4px;
+  border:1px solid #cfd5dd;
+  display:block;
+  margin:auto;
+}
+.student-print-photo-empty{
+  width:52px;
+  height:62px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:auto;
+  background:#f1f3f5;
+  color:#667085;
+  border:1px solid #cfd5dd;
+  font-size:9px;
+}
+.student-print-dates{
+  line-height:1.5;
+  min-width:90px;
+}
+.student-print-footer{
+  margin-top:16px;
+  font-size:10px;
+  color:#4b5563;
+  position:relative;
+  z-index:2;
+}
+.student-print-signatures{
+  display:flex;
+  justify-content:space-between;
+  gap:25px;
+  margin-top:30px;
+  color:#17243b;
+  position:relative;
+  z-index:2;
+}
+.student-print-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  padding:16px 0 0;
+  margin-top:16px;
+  border-top:1px solid var(--line);
+}
+.student-print-action-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  font-weight:800;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.student-print-modalbox{
+  width:min(1200px,96vw)!important;
+  max-width:1200px!important;
+  max-height:92vh!important;
+  overflow:auto!important;
+}
+.student-print-watermark{
+  position:absolute!important;
+  left:50%!important;
+  top:53%!important;
+  width:260px!important;
+  height:260px!important;
+  object-fit:contain!important;
+  transform:translate(-50%,-50%)!important;
+  opacity:.075!important;
+  z-index:0!important;
+  pointer-events:none!important;
+}
+.student-print-preview > *:not(.student-print-watermark){
+  position:relative;
+  z-index:2;
+}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  html,body{
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+  body.printing-student-attendance{
+    background:#fff!important;
+    color:#17243b!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+    overflow:visible!important;
+  }
+  body.printing-student-attendance aside,
+  body.printing-student-attendance header,
+  body.printing-student-attendance main,
+  body.printing-student-attendance main > #app{
+    display:none!important;
+    visibility:hidden!important;
+  }
+  body.printing-student-attendance #modal{
+    display:block!important;
+    visibility:visible!important;
+    position:static!important;
+    inset:auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+    overflow:visible!important;
+  }
+  body.printing-student-attendance #modal .student-print-modalbox{
+    display:block!important;
+    visibility:visible!important;
+    position:static!important;
+    width:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+  body.printing-student-attendance .student-print-preview{
+    display:block!important;
+    visibility:visible!important;
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+    overflow:visible!important;
+  }
+  body.printing-student-attendance .student-print-actions{
+    display:none!important;
+    visibility:hidden!important;
+  }
+  body.printing-student-attendance .student-print-table-wrap{
+    overflow:visible!important;
+  }
+  body.printing-student-attendance .student-print-table{
+    font-size:9px!important;
+  }
+  body.printing-student-attendance .student-print-table th,
+  body.printing-student-attendance .student-print-table td{
+    padding:5px!important;
+  }
+  body.printing-student-attendance .student-print-photo{
+    width:45px!important;
+    height:55px!important;
+  }
+  body.printing-student-attendance .student-print-watermark{
+    display:block!important;
+    visibility:visible!important;
+  }
+}
+
+
+/* FINAL STUDENT ATTENDANCE PRINT PREVIEW - matched to Teacher Attendance print behavior */
+.student-print-preview{
+  position:relative!important;
+  overflow:hidden!important;
+  background:#fff!important;
+  color:#17243b!important;
+  padding:24px!important;
+}
+.student-print-preview-head{
+  position:relative!important;
+  z-index:2!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:18px!important;
+  text-align:center!important;
+  border-bottom:3px solid #d7aa08!important;
+  padding-bottom:14px!important;
+}
+.student-print-logo{
+  width:82px!important;
+  height:82px!important;
+  object-fit:contain!important;
+  flex:0 0 82px!important;
+}
+.student-print-school-details{flex:1!important;min-width:0!important;text-align:center!important}
+.student-print-contact{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:center!important;
+  gap:4px 14px!important;
+  font-size:9px!important;
+  color:#334155!important;
+  margin-top:6px!important;
+}
+.student-print-contact span{white-space:nowrap!important}
+.student-print-meta{
+  display:flex!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  padding:12px 0!important;
+  font-size:10px!important;
+  flex-wrap:wrap!important;
+  position:relative!important;
+  z-index:2!important;
+}
+.student-print-table-wrap{overflow:visible!important;position:relative!important;z-index:2!important}
+.student-print-table{
+  width:100%!important;
+  border-collapse:collapse!important;
+  font-size:11px!important;
+}
+.student-print-table th,.student-print-table td{
+  border:1px solid #cfd5dd!important;
+  padding:7px!important;
+  vertical-align:middle!important;
+}
+.student-print-table th{
+  background:#0b3a71!important;
+  color:#fff!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+}
+.student-print-photo{
+  width:52px!important;height:62px!important;
+  object-fit:cover!important;border-radius:4px!important;
+  border:1px solid #cfd5dd!important;display:block!important;margin:auto!important;
+}
+.student-print-photo-empty{
+  width:52px!important;height:62px!important;display:flex!important;
+  align-items:center!important;justify-content:center!important;margin:auto!important;
+  background:#f1f3f5!important;color:#667085!important;
+  border:1px solid #cfd5dd!important;font-size:9px!important;
+}
+.student-print-dates{line-height:1.5!important;min-width:90px!important}
+.student-print-total{text-align:center!important;white-space:nowrap!important}
+.student-print-footer{
+  margin-top:16px!important;font-size:10px!important;color:#4b5563!important;
+  position:relative!important;z-index:2!important;
+}
+.student-print-signatures{
+  display:flex!important;justify-content:space-between!important;gap:25px!important;
+  margin-top:30px!important;color:#17243b!important;
+  position:relative!important;z-index:2!important;
+}
+.student-print-actions{
+  display:flex!important;justify-content:flex-end!important;gap:10px!important;
+  padding:16px 0 0!important;margin-top:16px!important;
+  border-top:1px solid var(--line)!important;
+}
+.student-print-action-btn{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  gap:9px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important;
+}
+.student-print-modalbox{
+  width:min(1200px,96vw)!important;
+  max-width:1200px!important;
+  max-height:92vh!important;
+  overflow:auto!important;
+}
+.student-print-watermark{
+  position:absolute!important;
+  left:50%!important;
+  top:53%!important;
+  width:260px!important;height:260px!important;
+  object-fit:contain!important;
+  transform:translate(-50%,-50%)!important;
+  opacity:.075!important;
+  z-index:0!important;
+  pointer-events:none!important;
+}
+.student-print-preview > *:not(.student-print-watermark){
+  position:relative!important;
+  z-index:2!important;
+}
+
+.search-result-count{
+  float:right;
+  display:inline-block;
+  min-width:18px;
+  padding:2px 6px;
+  margin-left:8px;
+  border-radius:10px;
+  background:#edf3fa;
+  color:#123e73;
+  font-size:9px;
+  text-align:center;
+}
+.search-result small strong{color:#123e73}
+.search-result[role="button"]:focus{
+  outline:2px solid #2d6da3;
+  outline-offset:-2px;
+}
+
+/* Global dashboard search results */
+.global-search-wrap{
+  position:relative;
+}
+.global-search-results{
+  display:none;
   position:absolute;
-  inset:0;
+  top:calc(100% + 8px);
+  right:0;
+  width:min(620px,80vw);
+  max-height:520px;
+  overflow-y:auto;
+  background:#fff;
+  border:1px solid #d9e0e8;
+  border-radius:10px;
+  box-shadow:0 14px 35px rgba(0,0,0,.16);
+  z-index:99999;
+  text-align:left;
+}
+.global-search-results.show{
+  display:block;
+}
+.global-search-results .search-result-head{
+  padding:11px 14px;
+  background:#f5f8fb;
+  border-bottom:1px solid #e2e7ed;
+  font-size:12px;
+  font-weight:700;
+  color:#173a63;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+.global-search-results .search-result{
+  display:block;
+  padding:11px 14px;
+  border-bottom:1px solid #edf0f3;
+  cursor:pointer;
+  color:#17243b;
+}
+.global-search-results .search-result:hover{
+  background:#f1f6fb;
+}
+.global-search-results .search-result b{
+  display:block;
+  font-size:13px;
+  margin-bottom:3px;
+}
+.global-search-results .search-result small{
+  display:block;
+  color:#667085;
+  line-height:1.4;
+  word-break:break-word;
+}
+.global-search-results .search-empty{
+  padding:18px;
+  color:#667085;
+  font-size:13px;
+  line-height:1.5;
+}
+@media(max-width:700px){
+  .global-search-results{
+    right:-40px;
+    width:min(92vw,520px);
+  }
+}
+
+/* Administrator passport profile */
+#adminProfilePill{cursor:pointer}
+#adminProfilePill .avatar{
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+#adminProfilePill .avatar.admin-avatar-image{
+  background:#fff!important;
+  border:1px solid #d5dce5!important;
+}
+#adminProfilePill .avatar.admin-avatar-image img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  display:block!important;
+}
+.admin-profile-modal{
+  width:min(460px,92vw)!important;
+  max-width:460px!important;
+}
+.admin-profile-upload{
+  text-align:center;
+}
+.admin-profile-upload-preview{
+  width:150px;
+  height:150px;
+  margin:10px auto 18px;
+  border-radius:50%;
+  overflow:hidden;
+  border:3px solid #d5dce5;
+  background:#f4f6f8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:42px;
+  font-weight:800;
+}
+.admin-profile-upload-preview img{
   width:100%;
   height:100%;
   object-fit:cover;
+}
+.admin-profile-upload p{
+  color:#667085;
+  font-size:13px;
+  margin:8px 0 16px;
+}
+
+/* Administrator account / logout */
+.admin-account-area{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.admin-logout-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  border:1px solid #d5dce5;
+  background:#fff;
+  color:#173a63;
+  border-radius:7px;
+  padding:8px 10px;
+  min-height:36px;
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  transition:background .15s ease,border-color .15s ease;
+}
+.admin-logout-button:hover{
+  background:#f3f6f9;
+  border-color:#b9c4d1;
+}
+.admin-logout-button span:first-child{
+  font-size:16px;
+  line-height:1;
+}
+@media(max-width:700px){
+  .admin-logout-button span:last-child{display:none}
+  .admin-logout-button{width:36px;padding:7px}
+}
+
+/* Full dashboard sign-out state */
+body.admin-is-signed-out > aside,
+body.admin-is-signed-out > main,
+body.admin-is-signed-out > #modal{
+  display:none!important;
+}
+body.admin-is-signed-out{
+  margin:0!important;
+  padding:0!important;
+  min-height:100vh!important;
+  overflow:hidden!important;
+}
+body.admin-is-signed-out .admin-signed-out-screen{
+  display:flex!important;
+}
+.admin-signed-out-screen{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100vh!important;
+  z-index:2147483647!important;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:#f5f7fa!important;
+  padding:24px;
+  box-sizing:border-box;
+}
+
+/* AFISAP Administrator Authentication */
+.afisap-auth-screen{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483647!important;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  box-sizing:border-box;
+  background:#f3f6fa;
+  font-family:Arial,sans-serif;
+}
+.afisap-auth-card{
+  width:min(430px,94vw);
+  background:#fff;
+  border:1px solid #d9e1ea;
+  border-radius:16px;
+  box-shadow:0 18px 55px rgba(0,0,0,.16);
+  padding:30px;
+  text-align:left;
+}
+.afisap-auth-logo{
+  width:78px;
+  height:78px;
+  margin:0 auto 10px;
+}
+.afisap-auth-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.afisap-auth-card h1{
+  text-align:center;
+  margin:0;
+  font-size:22px;
+  color:#173a63;
+}
+.afisap-auth-card h2{
+  text-align:center;
+  margin:4px 0 20px;
+  font-size:13px;
+  color:#667085;
+  font-weight:600;
+}
+.afisap-auth-title{
+  font-size:18px;
+  font-weight:800;
+  color:#173a63;
+  margin-bottom:16px;
+}
+.afisap-auth-card label{
+  display:block;
+  margin:11px 0 6px;
+  font-size:12px;
+  font-weight:700;
+  color:#344054;
+}
+.afisap-auth-card input{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #cfd7e2;
+  border-radius:7px;
+  padding:11px 12px;
+  font-size:13px;
+  outline:none;
+}
+.afisap-auth-card input:focus{
+  border-color:#173a63;
+  box-shadow:0 0 0 2px rgba(23,58,99,.08);
+}
+.afisap-auth-primary{
+  width:100%;
+  margin-top:17px;
+  border:0;
+  border-radius:7px;
+  padding:12px;
+  background:#173a63;
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+}
+.afisap-auth-link{
+  display:block;
+  margin:12px auto 0;
+  border:0;
+  background:transparent;
+  color:#173a63;
+  font-weight:700;
+  cursor:pointer;
+}
+.afisap-auth-message{
+  padding:9px 11px;
+  margin-bottom:10px;
+  border-radius:7px;
+  background:#fff4e5;
+  border:1px solid #f1d19b;
+  color:#7a4a00;
+  font-size:12px;
+  line-height:1.4;
+}
+.afisap-auth-help{
+  font-size:12px;
+  color:#667085;
+  line-height:1.5;
+  margin:0 0 8px;
+}
+.afisap-auth-allowed{
+  margin-top:22px;
+  padding-top:14px;
+  border-top:1px solid #e7ebf0;
+  text-align:center;
+}
+.afisap-auth-allowed small{
+  display:block;
+  color:#667085;
+  margin-bottom:6px;
+}
+.afisap-auth-allowed span{
+  display:block;
+  color:#173a63;
+  font-size:11px;
+  margin-top:2px;
+}
+body.afisap-auth-locked > aside,
+body.afisap-auth-locked > main{
+  display:none!important;
+}
+
+/* AFISAP V3 Login slideshow layout */
+.afisap-auth-screen{
+  padding:0!important;
+  background:#f5f7fb!important;
+  overflow:auto;
+}
+.afisap-auth-shell{
+  width:100vw;
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(390px,.75fr);
+  background:#fff;
+}
+.afisap-auth-slideshow{
+  position:relative;
+  min-height:100vh;
+  overflow:hidden;
+  background:#10233d;
+}
+.afisap-auth-slides,
+.afisap-auth-slide{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.afisap-auth-slide{
+  object-fit:cover;
   object-position:center;
   opacity:0;
-  animation:afisapWatermarkFade 54s infinite ease-in-out;
-  filter:saturate(1.08) contrast(1.02) brightness(1.0);
-  transform:scale(1.02);
-  will-change:opacity,transform;
+  transform:scale(1.035);
+  transition:opacity 1.1s ease,transform 5.5s ease;
 }
-.admission-watermark-slideshow img:nth-child(1){animation-delay:0s}
-.admission-watermark-slideshow img:nth-child(2){animation-delay:6s}
-.admission-watermark-slideshow img:nth-child(3){animation-delay:12s}
-.admission-watermark-slideshow img:nth-child(4){animation-delay:18s}
-.admission-watermark-slideshow img:nth-child(5){animation-delay:24s}
-.admission-watermark-slideshow img:nth-child(6){animation-delay:30s}
-.admission-watermark-slideshow img:nth-child(7){animation-delay:36s}
-.admission-watermark-slideshow img:nth-child(8){animation-delay:42s}
-.admission-watermark-slideshow img:nth-child(9){animation-delay:48s}
-@keyframes afisapWatermarkFade{
-  0%, 4%{opacity:0;transform:scale(1.02)}
-  8%, 17%{opacity:1;transform:scale(1.00)}
-  21%, 100%{opacity:0;transform:scale(1.02)}
+.afisap-auth-slide.is-active{
+  opacity:1;
+  transform:scale(1);
 }
-.admission-watermark-wash{display:none!important;}
-.site-header,.container,footer{
-  position:relative;
-  z-index:1;
+.afisap-auth-slide-overlay{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(7,25,55,.72) 0%,rgba(7,25,55,.18) 40%,rgba(7,25,55,.78) 100%);
+  pointer-events:none;
 }
-.site-header{background:rgba(7,26,61,.965)}
-.topline{background:rgba(4,18,45,.98)}
-.brandbar{background:rgba(7,26,61,.93)}
-.hero{background:linear-gradient(135deg,rgba(18,43,78,.92),rgba(36,75,123,.88))}
-.card{background:rgba(255,255,255,.96);backdrop-filter:none;-webkit-backdrop-filter:none}
-footer{background:rgba(4,18,45,.97)}
-@media print{
-  .admission-watermark{display:none!important}
+.afisap-auth-branding{
+  position:absolute;
+  top:30px;
+  left:34px;
+  right:34px;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  color:#fff;
+  z-index:2;
 }
-
-
-.developer-credit{
-  text-align:center;
-  padding:14px 20px 8px;
-  font-size:13px;
+.afisap-auth-branding img{
+  width:64px;
+  height:64px;
+  object-fit:contain;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.3));
+}
+.afisap-auth-brand-name{
+  font-weight:900;
+  font-size:22px;
+  letter-spacing:.6px;
+  text-shadow:0 2px 7px rgba(0,0,0,.4);
+}
+.afisap-auth-brand-tagline{
+  margin-top:3px;
+  font-size:11px;
+  letter-spacing:2.2px;
   font-weight:700;
-  letter-spacing:.3px;
-  color:#122b4e;
-  position:relative;
-  z-index:10;
+  opacity:.9;
 }
-.developer-credit a{
-  color:inherit;
-  text-decoration:none;
-  font-weight:800;
+.afisap-auth-caption{
+  position:absolute;
+  left:36px;
+  bottom:68px;
+  max-width:620px;
+  color:#fff;
+  z-index:2;
+  text-shadow:0 2px 10px rgba(0,0,0,.45);
 }
-.developer-credit a:hover{
-  text-decoration:underline;
+.afisap-auth-caption strong{
+  display:block;
+  font-size:clamp(28px,3.2vw,46px);
+  line-height:1.05;
+  margin-bottom:10px;
+}
+.afisap-auth-caption span{
+  display:block;
+  max-width:560px;
+  font-size:15px;
+  line-height:1.55;
+  opacity:.94;
+}
+.afisap-auth-dots{
+  position:absolute;
+  left:36px;
+  bottom:31px;
+  display:flex;
+  gap:6px;
+  z-index:3;
+}
+.afisap-auth-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:rgba(255,255,255,.45);
+  transition:all .25s ease;
+}
+.afisap-auth-dot.is-active{
+  width:23px;
+  border-radius:8px;
+  background:#fff;
+}
+.afisap-auth-panel{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 42px;
+  box-sizing:border-box;
+  background:#fff;
+}
+.afisap-auth-panel-inner{
+  width:min(430px,100%);
+}
+.afisap-auth-card{
+  width:min(430px,94vw);
+}
+.afisap-auth-panel .afisap-auth-logo{
+  width:86px;
+  height:86px;
+  margin:0 auto 12px;
+}
+.afisap-auth-panel h1{
+  font-size:23px;
+  letter-spacing:.2px;
+}
+.afisap-auth-panel h2{
+  margin-bottom:30px;
+}
+.afisap-auth-panel .afisap-auth-title{
+  text-align:center;
+  font-size:21px;
+  margin-bottom:20px;
+}
+.afisap-auth-panel form{
+  width:100%;
+}
+.afisap-auth-panel .afisap-auth-primary{
+  min-height:46px;
+  font-size:13px;
+  letter-spacing:.4px;
+}
+.afisap-auth-footer{
+  text-align:center;
+  margin-top:26px;
+  padding-top:15px;
+  border-top:1px solid #edf0f4;
+  color:#98a2b3;
+  font-size:11px;
+}
+@media (max-width:900px){
+  .afisap-auth-shell{grid-template-columns:1fr;}
+  .afisap-auth-slideshow{min-height:38vh;height:38vh;}
+  .afisap-auth-panel{min-height:62vh;padding:34px 24px;}
+  .afisap-auth-caption{bottom:35px;left:24px;right:24px;}
+  .afisap-auth-caption strong{font-size:30px;}
+  .afisap-auth-caption span{font-size:13px;}
+  .afisap-auth-dots{left:24px;bottom:14px;}
+  .afisap-auth-branding{top:18px;left:22px;}
+  .afisap-auth-branding img{width:52px;height:52px;}
+  .afisap-auth-brand-name{font-size:17px;}
+}
+@media (max-width:520px){
+  .afisap-auth-panel{padding:28px 20px;}
+  .afisap-auth-panel .afisap-auth-logo{width:72px;height:72px;}
+  .afisap-auth-panel h1{font-size:19px;}
+  .afisap-auth-panel h2{font-size:12px;margin-bottom:24px;}
+}
+
+
+/* AFISAP Academic Reports / Class Results */
+.report-mode-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.report-mode-tabs button{border-radius:8px}
+.report-help-text{margin-top:12px;padding:10px 12px;border-radius:8px;background:#f6f7f9;font-size:.92rem}
+.report-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.report-summary-grid>div{border:1px solid #ddd;border-radius:10px;padding:12px;text-align:center}
+.report-summary-grid b{display:block;font-size:.78rem}
+.report-summary-grid strong{display:block;font-size:1.3rem;margin-top:5px}
+@media(max-width:800px){.report-summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media print{
+  .report-mode-tabs,#studentReportPanel,#classResultsPanel,.report-actions{display:none!important}
+  #classResultsReport{display:block!important}
 }

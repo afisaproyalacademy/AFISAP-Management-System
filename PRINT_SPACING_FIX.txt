@@ -1,0 +1,11 @@
+AFISAP PRINT SPACING FIX
+
+Adjusted the Student Report Card / Class Results A4 portrait print layout:
+- Reduced the top @page margin from 8mm to 4mm.
+- Increased the bottom @page margin to 11mm for a more balanced page.
+- Added box sizing and page-break handling to the report print sheet.
+- Removed unnecessary final paragraph bottom spacing.
+- No data, Google Sheets, Results, Students, Attendance or report calculations were changed.
+
+Browser-generated headers/footers (date, URL, page number) are controlled by
+the browser's print dialog and cannot be removed by the webpage itself.

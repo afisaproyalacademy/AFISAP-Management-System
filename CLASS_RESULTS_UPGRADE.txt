@@ -1,0 +1,17 @@
+AFISAP CLASS RESULTS UPGRADE
+
+Added to the existing Reports page:
+- Student Report Card tab (existing functionality preserved)
+- Class Results tab
+- Class, Term and Academic Year selection
+- Complete class student performance table
+- Subject scores per student
+- Total and average calculations
+- Ranking/position based on total marks
+- Grade and remarks summary
+- Class-level statistics
+- Print-ready class results
+
+No Google Apps Script changes were made.
+Existing Students, Teachers, Classes, Subjects, Attendance, Results, Fees and
+Google Sheets synchronization code was preserved.

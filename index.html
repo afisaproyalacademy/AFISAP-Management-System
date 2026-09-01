@@ -1,0 +1,53 @@
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>AFISAP Royal Academy — V3</title><link rel='stylesheet' href='styles.css'></head><body>
+<aside>
+  <div class="logo-panel">
+    <img class="school-logo-sidebar" src="afisap_royal_academy_logo.png" alt="AFISAP Royal Academy logo">
+  </div>
+  <nav>
+    <button data-v='dashboard'>▣ <span>Dashboard</span></button>
+
+    <div class="nav-group-title">ADMINISTRATION</div>
+    <button data-v='students'>› <span>Students</span></button>
+    <button data-v='staff'>› <span>Teachers & Staff</span></button>
+    <button data-v='classes'>› <span>Classes</span></button>
+    <button data-v='settings'>› <span>School Setup</span></button>
+
+    <div class="nav-group-title">ACADEMICS</div>
+    <button data-v='results'>› <span>Results & Marks</span></button>
+    <button data-v='reports'>› <span>Report Cards</span></button>
+    <button data-v='attendance'>› <span>Attendance</span></button>
+    <button data-v='classes'>› <span>Subjects</span></button>
+
+    <div class="nav-group-title">FINANCE & RECORDS</div>
+    <button data-v='fees'>› <span>Fees & Textbooks</span></button>
+    <button data-v='reports'>› <span>Reports</span></button>
+  </nav>
+  <footer>Learning to Learn<br><small>AFISAP V3</small></footer>
+</aside>
+<main>
+  <header>
+    <div class="header-left">
+      <button id="menuToggle" class="menu-toggle">☰</button>
+      <div><small>AFISAP ROYAL ACADEMY</small><h1 id='title'>Dashboard</h1></div>
+    </div>
+    <div class="header-right">
+      <div class="global-search-wrap"><input id="globalSearch" class="global-search" placeholder="Search here ..." autocomplete="off"><button id="globalSearchBtn" class="search-button" title="Search" type="button">🔍</button><div id="globalSearchResults" class="global-search-results" aria-live="polite"></div></div>
+      <button id="mailButton" class="top-icon mail-button" title="Open AFISAP main email">✉ <b id="msgCount">0</b></button>
+      <button id="notificationButton" class="top-icon" title="View fee notifications">🔔 <b id="notificationCount">0</b></button>
+      <div class="admin-account-area">
+  <div class="user-pill" id="adminProfilePill" title="Click to manage Administrator profile">
+    <span class="avatar" id="adminAvatar">A</span>
+    <span>Administrator<br><small>School Admin</small></span>
+    <input id="adminAvatarFile" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+  </div>
+  <button type="button" id="adminLogoutButton" class="admin-logout-button" title="Sign out" aria-label="Sign out">
+    <span aria-hidden="true">↪</span><span>Log Out</span>
+  </button>
+</div>
+    </div>
+  </header>
+  <section id='app'></section>
+</main>
+<div id='modal' class='modal'></div>
+<script src='app.js'></script>
+</body></html>
