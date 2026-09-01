@@ -1103,7 +1103,7 @@ async function afisapSyncStudentsFromCloud(){
         const p2=document.getElementById("afisapConfirmPassword")?.value||"";
 
         if(!isAllowedEmail(email)){
-          showAuthScreen("forgot","Password reset is allowed only for afisaproyalacademy@gmail.com or appiatusr@gmail.com.");
+          showAuthScreen("forgot","Unable to process password reset. Please contact the system administrator.");
           return;
         }
         if(p1.length<6){
