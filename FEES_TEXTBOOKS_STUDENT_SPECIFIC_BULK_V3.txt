@@ -1,0 +1,24 @@
+AFISAP FEES & TEXTBOOKS — STUDENT-SPECIFIC BULK ACCOUNT UPGRADE V3
+
+Implemented on the newly supplied working system.
+
+Purpose:
+- Allow the administrator to assign a fee to an entire class or all students without entering students one by one.
+- Review the generated student list before saving.
+- Prefill a standard amount for every target student.
+- Allow only exceptional students to be changed before the single bulk save.
+- Store a separate fee record against each student's Student ID, Fee Item, Academic Year and Term.
+- Preserve individual fee/payment/edit/delete functions.
+- Add a Student Fee Accounts summary showing each student's own Due, Paid and Balance.
+- Keep the Academic Reports fee lookup student-specific so bulk report printing can retrieve the correct financial data for every student.
+- Keep Google Sheets bulk saving limited to the Fees sheet.
+
+Example:
+Standard fee = GHS 200
+Kwaku = GHS 60
+Ama = GHS 200
+
+After one bulk save, Kwaku and Ama have separate fee records. A later class/all-student report print reads each student's own record.
+
+Protected:
+Students, Teachers/Staff, Classes & Subjects, Attendance, Teacher Attendance, Results/Marks, Login, Drive/photo handling and unrelated modules were not intentionally changed.

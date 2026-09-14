@@ -1,0 +1,15 @@
+AFISAP FEES & TEXTBOOKS UPGRADE V1
+
+Purpose:
+- Allow the administrator to assign a configured fee to every student in a selected class or to all students at once.
+- Store each student's fee obligation as an individual fee record so each report card can retrieve the correct Due/Paid/Balance.
+- Skip duplicate student + fee + academic year + term records by default.
+- Preserve the existing individual fee-record form for special/custom amounts and payments.
+- Add an official fee reference panel based on the school's supplied prospectus and textbook documents.
+- Add a bulk Google Sheets write endpoint (bulkCreateFees) limited to the Fees sheet.
+- Make the Student Report Card fee section filter by the selected reporting term and current academic year, while retaining legacy records that have no period fields.
+
+Important:
+- Existing Students, Teachers/Staff, Classes & Subjects, Attendance, Teacher Attendance, Results, Login, Drive, and other unrelated modules were not intentionally changed.
+- The official documents list ranges for School Uniform and Daily T&T, and daily rates for Canteen/T&T; the system therefore requires the administrator to enter the actual amount due when assigning those charges.
+- The supplied textbook document lists a GHS 550 fee for each listed class; textbook value is shown as a reference and is not automatically charged unless the administrator configures/assigns the Textbook Fee.

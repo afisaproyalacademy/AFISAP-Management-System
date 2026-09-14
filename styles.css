@@ -2131,3 +2131,1028 @@ body.afisap-auth-locked > main{
   .report-mode-tabs,#studentReportPanel,#classResultsPanel,.report-actions{display:none!important}
   #classResultsReport{display:block!important}
 }
+
+/* AFISAP Academic Report Cards - bulk printing */
+.bulk-student-list{
+  border:1px solid var(--border);
+  border-radius:10px;
+  max-height:360px;
+  overflow:auto;
+  background:#fff;
+}
+.bulk-student-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-bottom:1px solid #edf0f3;
+  cursor:pointer;
+}
+.bulk-student-row:last-child{border-bottom:0}
+.bulk-student-row input{width:18px;height:18px}
+.bulk-student-row span{display:flex;flex-direction:column;gap:2px}
+.bulk-student-row small{color:#7c8794;font-size:10px}
+.bulk-report-page-break{
+  page-break-after:always;
+  break-after:page;
+  height:0;
+}
+@media print{
+  body.printing-bulk-report-cards aside,
+  body.printing-bulk-report-cards header{display:none!important}
+  body.printing-bulk-report-cards main{margin:0!important;padding:0!important}
+  body.printing-bulk-report-cards #bulkReport{
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+  body.printing-bulk-report-cards #bulkReport .report-print-sheet{
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  body.printing-bulk-report-cards #report,
+  body.printing-bulk-report-cards #classResultsReport,
+  body.printing-bulk-report-cards .panel{
+    display:none!important;
+  }
+  body.printing-bulk-report-cards .bulk-report-page-break{
+    page-break-after:always;
+    break-after:page;
+  }
+}
+
+/* AFISAP Student Attendance - bulk present workflow */
+.attendance-present-check{
+  width:20px;
+  height:20px;
+  flex:0 0 auto;
+}
+.attendance-status-label{
+  min-width:70px;
+  text-align:right;
+  font-weight:700;
+  font-size:12px;
+}
+@media (max-width:700px){
+  .attendance-student-row{align-items:flex-start!important}
+  .attendance-status-label{min-width:60px}
+}
+
+/* Academic Reports selection fix */
+.report-help-text{line-height:1.45}
+#repStu,#bulkReportClass,#classResultsClass{min-width:220px}
+
+/* AFISAP Student Promotion & Demotion — surgical Classes & Subjects upgrade */
+.afisap-promotion-controls{display:grid;grid-template-columns:minmax(220px,360px) 1fr;gap:14px;align-items:end;margin:14px 0}.afisap-promotion-controls label{font-weight:700}.afisap-promotion-controls select{width:100%;margin-top:7px}.afisap-promotion-next,.afisap-promotion-summary,.afisap-promotion-counts{padding:12px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc}.afisap-promotion-summary{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.afisap-promotion-summary>strong{font-size:24px}.afisap-promotion-summary span{margin-left:auto}.afisap-promotion-actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}.afisap-promotion-counts{margin-bottom:10px}.afisap-promotion-list{max-height:520px;overflow:auto;border:1px solid #e5e7eb;border-radius:10px}.afisap-promotion-student{display:grid;grid-template-columns:auto minmax(180px,1fr) minmax(180px,.7fr) auto;gap:12px;align-items:center;padding:11px 13px;border-bottom:1px solid #eef2f7}.afisap-promotion-student:last-child{border-bottom:0}.afisap-promotion-student input{width:18px;height:18px}.afisap-promotion-student small{display:block;margin-top:3px}.afisap-promotion-student em{font-style:normal;font-size:13px}.afisap-promotion-confirm-buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}@media(max-width:720px){.afisap-promotion-controls{grid-template-columns:1fr}.afisap-promotion-student{grid-template-columns:auto 1fr}.afisap-promotion-student em,.afisap-promotion-student button{grid-column:2}.afisap-promotion-summary span{margin-left:0;width:100%}}
+
+/* AFISAP: automatic Headmaster signature on report cards */
+.headmaster-signature-block{
+  width:100%;
+  text-align:center;
+  margin:8px 0 2px;
+  position:relative;
+  z-index:3;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.headmaster-signature-image{
+  display:block;
+  width:190px;
+  height:68px;
+  margin:0 auto -4px;
+  object-fit:contain;
+  object-position:center;
+}
+.headmaster-signature-line{
+  width:190px;
+  margin:0 auto;
+  border-top:1px solid #17243b;
+}
+.headmaster-signature-title{
+  margin:3px 0 0!important;
+  line-height:1.15;
+  font-size:10px!important;
+}
+@media print{
+  .headmaster-signature-block{
+    page-break-inside:avoid!important;
+    break-inside:avoid!important;
+  }
+}
+
+/* =====================================================================
+   AFISAP REPORT CARD READABILITY — SURGICAL CSS ONLY
+   Scope: existing student Report Card (.report-print-sheet) only.
+   No report logic, data, photo, signature, bulk-print, or application code.
+   ===================================================================== */
+
+/* Screen / browser report preview */
+.report-print-sheet{
+  line-height:1.18!important;
+}
+.report-print-sheet .report-attendance-style-school h2{
+  font-size:26px!important;
+  line-height:1.08!important;
+}
+.report-print-sheet .report-attendance-style-school h3{
+  font-size:21px!important;
+  line-height:1.08!important;
+}
+.report-print-sheet .report-attendance-style-school > p{
+  font-size:16px!important;
+  line-height:1.15!important;
+}
+.report-print-sheet .report-attendance-style-contact{
+  font-size:13px!important;
+  line-height:1.15!important;
+}
+.report-print-sheet .student-report-profile{
+  gap:10px!important;
+  padding:7px!important;
+  margin:8px 0 7px!important;
+}
+.report-print-sheet .student-report-details{
+  font-size:18px!important;
+  line-height:1.14!important;
+}
+.report-print-sheet .student-report-details p{
+  margin:1px 0!important;
+  font-size:18px!important;
+  line-height:1.14!important;
+}
+.report-print-sheet .student-report-details:first-of-type p:first-child{
+  font-size:21px!important;
+  font-weight:700!important;
+}
+.report-print-sheet > h3{
+  font-size:20px!important;
+  line-height:1.08!important;
+  margin:5px 0 3px!important;
+  padding:4px 6px!important;
+}
+.report-print-sheet table{
+  font-size:18px!important;
+  line-height:1.08!important;
+  margin:2px 0 5px!important;
+}
+.report-print-sheet th,
+.report-print-sheet td{
+  padding:3px 4px!important;
+  line-height:1.08!important;
+  vertical-align:middle!important;
+}
+.report-print-sheet th{
+  font-size:18px!important;
+  font-weight:700!important;
+}
+.report-print-sheet > p{
+  font-size:18px!important;
+  line-height:1.12!important;
+  margin:3px 0!important;
+}
+
+/* Keep the already-working Headmaster signature and its label untouched. */
+.report-print-sheet .headmaster-signature-block,
+.report-print-sheet .headmaster-signature-image,
+.report-print-sheet .headmaster-signature-line,
+.report-print-sheet .headmaster-signature-title{
+  /* intentionally no visual overrides */
+}
+
+@media print{
+  /* Compact page geometry, not smaller content: keeps one student's report
+     on its own A4 page while preserving the enlarged readable type. */
+  .report-print-sheet{
+    width:210mm!important;
+    max-width:210mm!important;
+    min-height:0!important;
+    height:auto!important;
+    padding:5mm 7mm 5mm!important;
+    line-height:1.08!important;
+    overflow:hidden!important;
+    page-break-inside:avoid!important;
+    break-inside:avoid!important;
+  }
+
+  .report-print-sheet .report-attendance-style-header{
+    gap:12px!important;
+    padding-bottom:6px!important;
+  }
+  .report-print-sheet .report-attendance-style-logo{
+    width:66px!important;
+    height:66px!important;
+    flex-basis:66px!important;
+  }
+  .report-print-sheet .report-attendance-style-school h2{
+    font-size:24px!important;
+  }
+  .report-print-sheet .report-attendance-style-school h3{
+    font-size:20px!important;
+  }
+  .report-print-sheet .report-attendance-style-school > p{
+    font-size:15px!important;
+    margin:1px 0!important;
+  }
+  .report-print-sheet .report-attendance-style-contact{
+    font-size:12px!important;
+    gap:2px 10px!important;
+    margin-top:2px!important;
+  }
+
+  .report-print-sheet .student-report-profile{
+    gap:8px!important;
+    padding:5px!important;
+    margin:5px 0!important;
+  }
+  .report-print-sheet .report-photo{
+    width:68px!important;
+    height:80px!important;
+  }
+  .report-print-sheet .student-report-details,
+  .report-print-sheet .student-report-details p{
+    font-size:17px!important;
+    line-height:1.06!important;
+    margin:0!important;
+  }
+  .report-print-sheet .student-report-details:first-of-type p:first-child{
+    font-size:20px!important;
+  }
+
+  .report-print-sheet > h3{
+    font-size:19px!important;
+    line-height:1.04!important;
+    margin:3px 0 2px!important;
+    padding:3px 5px!important;
+  }
+  .report-print-sheet table{
+    font-size:17px!important;
+    line-height:1.02!important;
+    margin:1px 0 3px!important;
+  }
+  .report-print-sheet th,
+  .report-print-sheet td{
+    padding:2px 3px!important;
+    line-height:1.02!important;
+  }
+  .report-print-sheet th{
+    font-size:17px!important;
+  }
+  .report-print-sheet > p{
+    font-size:17px!important;
+    line-height:1.05!important;
+    margin:2px 0!important;
+  }
+
+  /* Bulk printing: enforce exactly one report sheet per student page. */
+  body.printing-bulk-report-cards #bulkReport .report-print-sheet{
+    page-break-inside:avoid!important;
+    break-inside:avoid!important;
+    page-break-after:auto!important;
+    break-after:auto!important;
+  }
+  body.printing-bulk-report-cards .bulk-report-page-break{
+    display:block!important;
+    height:0!important;
+    margin:0!important;
+    padding:0!important;
+    page-break-after:always!important;
+    break-after:page!important;
+  }
+}
+
+
+/* AFISAP automatic academic-position watermark — Report Cards only */
+.report-print-sheet .report-position-watermark{
+  position:absolute;
+  left:50%;
+  top:52%;
+  transform:translate(-50%,-50%);
+  font-size:220px;
+  line-height:1;
+  font-weight:800;
+  color:#0b3a71;
+  opacity:.06;
+  z-index:1;
+  pointer-events:none;
+  user-select:none;
+  white-space:nowrap;
+}
+.report-print-sheet .report-overall-position{
+  font-weight:700;
+}
+@media print{
+  .report-print-sheet .report-position-watermark{
+    display:block!important;
+    visibility:visible!important;
+    position:absolute!important;
+    left:50%!important;
+    top:52%!important;
+    transform:translate(-50%,-50%)!important;
+    font-size:210px!important;
+    opacity:.06!important;
+    z-index:1!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+}
+
+
+/* =====================================================================
+   AFISAP OFFICIAL SCHOOL REPORT CARD LAYOUT - STUDENT REPORT ONLY
+   Visual reference: official AFISAP one-page report. No application logic.
+   ===================================================================== */
+.report-print-sheet.afisap-official-report-card{
+  width:210mm!important;
+  max-width:210mm!important;
+  min-height:297mm!important;
+  padding:7mm 8mm 6mm!important;
+  border:1.5px solid #b9b9b9;
+  border-radius:15px;
+  color:#171717;
+  font-family:Arial,Helvetica,sans-serif;
+  line-height:1.1!important;
+  box-sizing:border-box;
+  background:#fff;
+}
+.afisap-official-report-card .official-report-header{
+  display:grid;
+  grid-template-columns:92px minmax(0,1fr) 82px;
+  align-items:center;
+  gap:10px;
+  min-height:94px;
+  padding:1px 7px 7px;
+  position:relative;
+  z-index:2;
+}
+.afisap-official-report-card .official-report-logo{
+  width:88px;
+  height:88px;
+  object-fit:contain;
+  justify-self:start;
+}
+.afisap-official-report-card .official-report-school{text-align:center;min-width:0}
+.afisap-official-report-card .official-report-school h1{
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#111!important;
+  font-size:28px!important;
+  line-height:1.04!important;
+  font-weight:800!important;
+  letter-spacing:.2px;
+}
+.afisap-official-report-card .official-report-motto{
+  margin-top:5px;
+  font-size:18px;
+  font-weight:500;
+  letter-spacing:.4px;
+}
+.afisap-official-report-card .official-report-phones{
+  margin-top:7px;
+  font-size:15px;
+  font-weight:600;
+  white-space:normal;
+}
+.afisap-official-report-card .official-report-contact{
+  margin-top:3px;
+  font-size:12.5px;
+  font-weight:500;
+  overflow-wrap:anywhere;
+}
+.afisap-official-report-card .official-report-student-photo{
+  width:72px!important;
+  height:82px!important;
+  border:1px solid #c4c4c4!important;
+  border-radius:13px;
+  justify-self:end;
+  background:#f8f8f8;
+}
+.afisap-official-report-card .official-report-student-photo img{border-radius:12px}
+.afisap-official-report-card table{
+  width:100%!important;
+  border-collapse:collapse!important;
+  table-layout:fixed;
+  background:rgba(255,255,255,.94)!important;
+  color:#171717!important;
+  position:relative;
+  z-index:2;
+  margin:0 0 8px!important;
+  font-size:17px!important;
+  line-height:1.06!important;
+}
+.afisap-official-report-card table th,
+.afisap-official-report-card table td{
+  border:1.3px solid #333!important;
+  padding:5px 5px!important;
+  color:#171717!important;
+  vertical-align:middle!important;
+}
+.afisap-official-report-card .official-report-period-table th{
+  background:#e6e6e6!important;
+  text-align:center!important;
+  font-size:18px!important;
+}
+.afisap-official-report-card .official-report-period-table td{
+  background:#ededed!important;
+  text-align:center!important;
+  font-size:17px!important;
+}
+.afisap-official-report-card .official-report-student-info th{
+  background:#e4e4e4!important;
+  text-align:center!important;
+  font-size:18px!important;
+  font-weight:800!important;
+}
+.afisap-official-report-card .official-report-student-info .official-label{
+  width:19%;
+  background:#ededed!important;
+  font-weight:700;
+}
+.afisap-official-report-card .official-report-student-info .official-value{background:rgba(255,255,255,.9)!important}
+.afisap-official-report-card .official-report-student-info .official-student-name{
+  font-size:20px!important;
+  font-weight:700!important;
+}
+.afisap-official-report-card .official-report-results{font-size:17px!important;margin-top:1px!important}
+.afisap-official-report-card .official-report-results th,
+.afisap-official-report-card .official-report-results td{
+  padding:5px 4px!important;
+}
+.afisap-official-report-card .official-report-results thead th{
+  background:#203047!important;
+  color:#fff!important;
+  text-align:center!important;
+  font-size:17px!important;
+  font-weight:700!important;
+}
+.afisap-official-report-card .official-report-results th:nth-child(1){width:24%}
+.afisap-official-report-card .official-report-results th:nth-child(2){width:15%}
+.afisap-official-report-card .official-report-results th:nth-child(3){width:15%}
+.afisap-official-report-card .official-report-results th:nth-child(4){width:16%}
+.afisap-official-report-card .official-report-results th:nth-child(5){width:11%}
+.afisap-official-report-card .official-report-results th:nth-child(6){width:19%}
+.afisap-official-report-card .official-report-results td:not(:first-child){text-align:center}
+.afisap-official-report-card .official-overall-row th,
+.afisap-official-report-card .official-overall-row td{
+  background:#ececec!important;
+  font-weight:800!important;
+  text-align:center!important;
+}
+.afisap-official-report-card .official-report-attendance-line{
+  display:grid;
+  grid-template-columns:1fr .8fr 1.25fr;
+  gap:10px;
+  align-items:center;
+  margin:2px 4px 8px;
+  font-size:17px;
+  position:relative;
+  z-index:2;
+}
+.afisap-official-report-card .official-report-remarks{
+  font-size:17px;
+  margin:2px 4px 7px;
+  position:relative;
+  z-index:2;
+}
+.afisap-official-report-card .official-remark-line{
+  min-height:20px;
+  border-bottom:1.3px dotted #333;
+  padding:1px 4px;
+}
+.afisap-official-report-card .official-report-fees th{
+  background:#ffe58a!important;
+  text-align:center!important;
+  font-weight:800!important;
+  font-size:16.5px!important;
+}
+.afisap-official-report-card .official-report-fees td{
+  height:30px;
+  text-align:center;
+  font-size:17px!important;
+}
+.afisap-official-report-card .official-report-position-line{
+  text-align:left;
+  font-size:18px;
+  margin:2px 4px 4px;
+  position:relative;
+  z-index:2;
+}
+.afisap-official-report-card .official-report-signatures{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:35px;
+  align-items:end;
+  margin:2px 4px 0;
+  position:relative;
+  z-index:3;
+}
+.afisap-official-report-card .official-class-teacher-signature{text-align:left;font-size:14px}
+.afisap-official-report-card .official-signature-space{height:48px}
+.afisap-official-report-card .official-signature-line{border-top:1px dotted #333;margin-bottom:4px}
+.afisap-official-report-card .official-signature-name{margin-top:2px;font-size:13px;font-weight:700}
+.afisap-official-report-card .official-report-signatures .headmaster-signature-block{
+  margin:0!important;
+  align-self:end;
+}
+.afisap-official-report-card .official-report-footer{
+  text-align:center;
+  margin-top:4px;
+  font-size:10px;
+  font-style:italic;
+  letter-spacing:.4px;
+  position:relative;
+  z-index:2;
+}
+.afisap-official-report-card .report-card-watermark{
+  width:300px!important;
+  height:300px!important;
+  top:53%!important;
+  opacity:.055!important;
+}
+.afisap-official-report-card .report-position-watermark{
+  top:52%!important;
+  font-size:230px!important;
+  opacity:.06!important;
+}
+
+@media print{
+  .report-print-sheet.afisap-official-report-card{
+    width:210mm!important;
+    max-width:210mm!important;
+    min-height:297mm!important;
+    height:297mm!important;
+    padding:5.5mm 7mm 5mm!important;
+    margin:0!important;
+    border:1.2px solid #a8a8a8!important;
+    border-radius:13px!important;
+    overflow:hidden!important;
+    page-break-inside:avoid!important;
+    break-inside:avoid!important;
+    page-break-after:auto!important;
+    break-after:auto!important;
+  }
+  .afisap-official-report-card .official-report-header{
+    grid-template-columns:78px minmax(0,1fr) 68px;
+    min-height:79px;
+    gap:7px;
+    padding:0 5px 5px;
+  }
+  .afisap-official-report-card .official-report-logo{width:74px;height:74px}
+  .afisap-official-report-card .official-report-student-photo{width:62px!important;height:70px!important}
+  .afisap-official-report-card .official-report-school h1{font-size:25px!important}
+  .afisap-official-report-card .official-report-motto{font-size:16px;margin-top:3px}
+  .afisap-official-report-card .official-report-phones{font-size:13.5px;margin-top:4px}
+  .afisap-official-report-card .official-report-contact{font-size:10.5px;margin-top:2px}
+  .afisap-official-report-card table{font-size:16px!important;margin-bottom:5px!important;line-height:1.02!important}
+  .afisap-official-report-card table th,
+  .afisap-official-report-card table td{padding:3px 4px!important;line-height:1.02!important}
+  .afisap-official-report-card .official-report-period-table th{font-size:16.5px!important}
+  .afisap-official-report-card .official-report-period-table td{font-size:16px!important}
+  .afisap-official-report-card .official-report-student-info th{font-size:17px!important}
+  .afisap-official-report-card .official-report-student-info .official-student-name{font-size:18px!important}
+  .afisap-official-report-card .official-report-results,
+  .afisap-official-report-card .official-report-results thead th{font-size:15.5px!important}
+  .afisap-official-report-card .official-report-results th,
+  .afisap-official-report-card .official-report-results td{padding:3px 3px!important}
+  .afisap-official-report-card .official-report-attendance-line{font-size:15.5px;margin:1px 3px 5px;gap:6px}
+  .afisap-official-report-card .official-report-remarks{font-size:15.5px;margin:1px 3px 4px}
+  .afisap-official-report-card .official-remark-line{min-height:16px}
+  .afisap-official-report-card .official-report-fees th{font-size:14.5px!important}
+  .afisap-official-report-card .official-report-fees td{font-size:15.5px!important;height:24px}
+  .afisap-official-report-card .official-report-position-line{font-size:16px;margin:1px 3px 2px}
+  .afisap-official-report-card .official-report-signatures{gap:26px;margin-top:0}
+  .afisap-official-report-card .official-signature-space{height:35px}
+  .afisap-official-report-card .official-class-teacher-signature{font-size:12px}
+  .afisap-official-report-card .official-signature-name{font-size:11px}
+  .afisap-official-report-card .official-report-footer{font-size:8.5px;margin-top:2px}
+  .afisap-official-report-card .report-card-watermark{width:270px!important;height:270px!important;opacity:.05!important}
+  .afisap-official-report-card .report-position-watermark{font-size:210px!important;opacity:.06!important}
+  body.printing-bulk-report-cards #bulkReport .afisap-official-report-card{
+    height:297mm!important;
+    min-height:297mm!important;
+    page-break-inside:avoid!important;
+    break-inside:avoid!important;
+  }
+}
+
+/* Preserve the official paper watermark effect through the result rows. */
+.afisap-official-report-card .official-report-results tbody td,
+.afisap-official-report-card .official-report-results tbody th{
+  background:rgba(255,255,255,.74)!important;
+}
+.afisap-official-report-card .official-report-results .official-overall-row th,
+.afisap-official-report-card .official-report-results .official-overall-row td{
+  background:rgba(236,236,236,.80)!important;
+}
+.afisap-official-report-card .report-position-watermark{opacity:.075!important}
+@media print{
+  .afisap-official-report-card .report-position-watermark{opacity:.07!important}
+}
+
+/* Final print readability uplift: keeps the official one-page geometry while
+   preserving the larger AFISAP report-card type requested by the school. */
+@media print{
+  .afisap-official-report-card .official-report-school h1{font-size:27px!important}
+  .afisap-official-report-card .official-report-motto{font-size:17px!important}
+  .afisap-official-report-card .official-report-phones{font-size:14px!important}
+  .afisap-official-report-card table{font-size:17px!important}
+  .afisap-official-report-card .official-report-period-table th{font-size:17.5px!important}
+  .afisap-official-report-card .official-report-period-table td{font-size:17px!important}
+  .afisap-official-report-card .official-report-student-info th{font-size:18px!important}
+  .afisap-official-report-card .official-report-student-info .official-student-name{font-size:20px!important}
+  .afisap-official-report-card .official-report-results,
+  .afisap-official-report-card .official-report-results thead th{font-size:16.5px!important}
+  .afisap-official-report-card .official-report-attendance-line{font-size:17px!important}
+  .afisap-official-report-card .official-report-remarks{font-size:17px!important}
+  .afisap-official-report-card .official-report-fees th{font-size:16px!important}
+  .afisap-official-report-card .official-report-fees td{font-size:17px!important}
+  .afisap-official-report-card .official-report-position-line{font-size:17.5px!important}
+}
+
+
+/* AFISAP report-card information restoration from the previous official report.
+   Report Card only: no application/module styling is changed. */
+.afisap-official-report-card .official-report-student-info .official-label{
+  white-space:nowrap;
+}
+.afisap-official-report-card .official-report-student-info .official-value{
+  overflow-wrap:anywhere;
+}
+.afisap-official-report-card .report-position-watermark{
+  font-size:155px!important;
+  opacity:.13!important;
+  font-weight:800!important;
+  top:51%!important;
+}
+@media print{
+  .afisap-official-report-card .official-report-student-info{
+    font-size:15.5px!important;
+  }
+  .afisap-official-report-card .official-report-student-info th,
+  .afisap-official-report-card .official-report-student-info td{
+    padding:2px 4px!important;
+    line-height:1!important;
+  }
+  .afisap-official-report-card .official-report-student-info .official-student-name{
+    font-size:18px!important;
+  }
+  .afisap-official-report-card .report-position-watermark{
+    font-size:145px!important;
+    opacity:.12!important;
+    top:51%!important;
+  }
+  .afisap-official-report-card .official-overall-row th:nth-child(5){
+    font-size:14px!important;
+    white-space:nowrap;
+  }
+}
+
+/* Promotion synchronization loading indicator */
+.afisap-promotion-confirm-buttons #confirmPromotionNow.is-synchronizing{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-width:190px;
+  cursor:wait;
+  opacity:.9;
+}
+.afisap-promotion-confirm-buttons button.is-disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.afisap-promotion-spinner{
+  width:16px;
+  height:16px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  display:inline-block;
+  flex:0 0 16px;
+  animation:afisapPromotionSpin .7s linear infinite;
+}
+@keyframes afisapPromotionSpin{
+  to{transform:rotate(360deg)}
+}
+
+/* AFISAP Fees save progress */
+.afisap-fee-save-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:24px;
+  margin-top:10px;
+  font-size:.92rem;
+  font-weight:600;
+}
+.afisap-fee-spinner{
+  width:16px;
+  height:16px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  display:inline-block;
+  animation:afisapFeeSpin .7s linear infinite;
+  flex:0 0 16px;
+}
+@keyframes afisapFeeSpin{to{transform:rotate(360deg)}}
+
+/* AFISAP Fees save progress */
+.afisap-fee-bulk-progress{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:46px;
+}
+.afisap-fee-loading-logo{
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  animation:afisapFeeLogoPulse 1.1s ease-in-out infinite;
+}
+.afisap-fee-loading-logo img{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+}
+.afisap-fee-progress-copy{font-weight:600}
+@keyframes afisapFeeLogoPulse{
+  0%,100%{transform:scale(.9);opacity:.65}
+  50%{transform:scale(1);opacity:1}
+}
+
+
+/* MAIN ADMIN LOGIN — centered circular card over supplied school photo.
+   Surgical frontend-only enhancement. */
+.afisap-auth-screen{
+  overflow:hidden!important;
+  background:#0c3158!important;
+}
+.afisap-auth-shell{
+  position:relative!important;
+  display:block!important;
+  width:100vw!important;
+  min-height:100vh!important;
+  background:#0c3158!important;
+  overflow:hidden!important;
+}
+.afisap-auth-slideshow{
+  position:absolute!important;
+  inset:0!important;
+  min-height:100vh!important;
+  height:100vh!important;
+  width:100vw!important;
+  overflow:hidden!important;
+  background:#0c3158!important;
+}
+.afisap-auth-main-photo{
+  opacity:1!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  transform:scale(1.05)!important;
+  animation:afisapAdminLoginPhotoMove 18s ease-in-out infinite alternate!important;
+}
+@keyframes afisapAdminLoginPhotoMove{
+  0%{transform:scale(1.05) translate3d(-1.4%,0,0)}
+  50%{transform:scale(1.10) translate3d(1.2%,-.8%,0)}
+  100%{transform:scale(1.06) translate3d(0,1%,0)}
+}
+.afisap-auth-slide-overlay{
+  background:
+    radial-gradient(circle at center,rgba(4,35,72,.12) 0%,rgba(4,35,72,.34) 55%,rgba(4,35,72,.60) 100%),
+    linear-gradient(180deg,rgba(5,25,52,.25),rgba(5,25,52,.48))!important;
+}
+.afisap-auth-branding{
+  top:22px!important;
+  left:26px!important;
+  right:auto!important;
+}
+.afisap-auth-caption,
+.afisap-auth-dots{
+  display:none!important;
+}
+.afisap-auth-panel{
+  position:relative!important;
+  z-index:5!important;
+  min-height:100vh!important;
+  width:100vw!important;
+  padding:28px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:transparent!important;
+  box-sizing:border-box!important;
+}
+.afisap-auth-panel-inner{
+  width:610px!important;
+  height:610px!important;
+  max-width:calc(100vw - 44px)!important;
+  max-height:calc(100vh - 44px)!important;
+  border-radius:50%!important;
+  box-sizing:border-box!important;
+  padding:60px 88px 54px!important;
+  background:rgba(255,255,255,.94)!important;
+  border:1px solid rgba(255,255,255,.80)!important;
+  box-shadow:0 24px 75px rgba(0,20,48,.34)!important;
+  backdrop-filter:blur(8px)!important;
+  -webkit-backdrop-filter:blur(8px)!important;
+  overflow:auto!important;
+  scrollbar-width:none;
+}
+.afisap-auth-panel-inner::-webkit-scrollbar{display:none}
+.afisap-auth-panel .afisap-auth-logo{
+  width:72px!important;
+  height:72px!important;
+  margin:0 auto 8px!important;
+}
+.afisap-auth-panel h1{
+  text-align:center!important;
+  font-size:20px!important;
+  margin:0!important;
+  color:#103d70!important;
+}
+.afisap-auth-panel h2{
+  text-align:center!important;
+  margin:4px 0 14px!important;
+  font-size:12px!important;
+}
+.afisap-auth-panel .afisap-auth-title{
+  margin-bottom:12px!important;
+  font-size:18px!important;
+}
+.afisap-auth-panel label{
+  margin:8px 0 4px!important;
+}
+.afisap-auth-panel input{
+  padding:10px 12px!important;
+  background:rgba(255,255,255,.94)!important;
+}
+.afisap-auth-panel .afisap-auth-primary{
+  min-height:42px!important;
+  margin-top:13px!important;
+}
+.afisap-auth-panel .afisap-auth-link{
+  margin-top:8px!important;
+}
+.afisap-login-credit{
+  margin-top:10px!important;
+  font-size:.82rem!important;
+}
+.afisap-auth-footer{
+  margin-top:10px!important;
+  padding-top:8px!important;
+}
+.afisap-admin-signin-loader[hidden]{display:none!important}
+.afisap-admin-signin-loader{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(5,28,58,.48);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+.afisap-admin-signin-loader-card{
+  width:min(310px,84vw);
+  padding:28px 24px;
+  border-radius:24px;
+  text-align:center;
+  color:#103d70;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 22px 65px rgba(0,18,45,.32);
+}
+.afisap-admin-signin-loader-card img{
+  width:88px;
+  height:88px;
+  object-fit:contain;
+  animation:afisapAdminLogoPulse 1.15s ease-in-out infinite;
+}
+@keyframes afisapAdminLogoPulse{
+  0%,100%{opacity:.42;transform:scale(.88)}
+  50%{opacity:1;transform:scale(1.06)}
+}
+.afisap-admin-signin-title{
+  margin-top:10px;
+  font-size:20px;
+  font-weight:900;
+}
+.afisap-admin-signin-subtitle{
+  margin-top:6px;
+  font-size:12px;
+  line-height:1.5;
+  color:#667085;
+}
+@media(max-width:700px){
+  .afisap-auth-branding{top:14px!important;left:14px!important}
+  .afisap-auth-branding img{width:46px!important;height:46px!important}
+  .afisap-auth-brand-name{font-size:14px!important}
+  .afisap-auth-brand-tagline{font-size:9px!important}
+  .afisap-auth-panel{padding:78px 14px 18px!important}
+  .afisap-auth-panel-inner{
+    width:min(92vw,470px)!important;
+    height:auto!important;
+    max-height:calc(100vh - 100px)!important;
+    min-height:0!important;
+    border-radius:34px!important;
+    padding:25px 24px 22px!important;
+  }
+  .afisap-auth-panel .afisap-auth-logo{width:60px!important;height:60px!important}
+  .afisap-auth-panel h1{font-size:17px!important}
+  .afisap-auth-panel h2{margin-bottom:10px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .afisap-auth-main-photo,
+  .afisap-admin-signin-loader-card img{animation:none!important}
+}
+
+
+
+/* MAIN ADMIN LOGIN — revised circular design (keeps the supplied moving photo). */
+.afisap-auth-panel-inner{
+  position:relative!important;
+  width:620px!important;
+  height:620px!important;
+  border-radius:50%!important;
+  padding:62px 92px 56px!important;
+  background:
+    radial-gradient(circle at 35% 24%,rgba(255,255,255,.99) 0%,rgba(255,255,255,.96) 44%,rgba(240,247,255,.94) 100%)!important;
+  border:8px solid rgba(255,255,255,.75)!important;
+  box-shadow:
+    0 0 0 4px rgba(20,78,132,.72),
+    0 0 0 10px rgba(247,194,30,.78),
+    0 28px 78px rgba(0,20,48,.40)!important;
+  overflow:auto!important;
+}
+.afisap-auth-panel-inner::before{
+  content:"";
+  position:absolute;
+  inset:15px;
+  border-radius:50%;
+  border:1px solid rgba(16,61,112,.18);
+  pointer-events:none;
+}
+.afisap-auth-panel-inner::after{
+  content:"";
+  position:absolute;
+  width:120px;
+  height:10px;
+  left:50%;
+  top:27px;
+  transform:translateX(-50%);
+  border-radius:10px;
+  background:linear-gradient(90deg,#0f477f,#f1bf22,#0f477f);
+  opacity:.9;
+  pointer-events:none;
+}
+.afisap-auth-panel .afisap-auth-logo{
+  width:76px!important;
+  height:76px!important;
+  padding:5px!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 6px 20px rgba(16,61,112,.14)!important;
+}
+.afisap-auth-panel .afisap-auth-title{
+  color:#103d70!important;
+  letter-spacing:.2px!important;
+}
+.afisap-auth-panel input{
+  border-radius:14px!important;
+  border:1px solid #c9d7e7!important;
+  box-shadow:inset 0 1px 2px rgba(16,61,112,.04)!important;
+}
+.afisap-auth-panel input:focus{
+  border-color:#164f87!important;
+  box-shadow:0 0 0 3px rgba(22,79,135,.10)!important;
+}
+.afisap-auth-panel .afisap-auth-primary{
+  border-radius:999px!important;
+  background:linear-gradient(135deg,#0e3f73,#1d609d)!important;
+  box-shadow:0 8px 20px rgba(14,63,115,.20)!important;
+}
+.afisap-auth-panel .afisap-auth-primary:hover{
+  transform:translateY(-1px);
+}
+@media(max-width:700px){
+  .afisap-auth-panel-inner{
+    width:min(92vw,470px)!important;
+    height:auto!important;
+    border-radius:32px!important;
+    border-width:4px!important;
+    box-shadow:
+      0 0 0 3px rgba(20,78,132,.62),
+      0 0 0 7px rgba(247,194,30,.68),
+      0 22px 58px rgba(0,20,48,.34)!important;
+    padding:28px 24px 23px!important;
+  }
+  .afisap-auth-panel-inner::before{border-radius:24px;inset:9px}
+  .afisap-auth-panel-inner::after{top:15px;width:86px;height:7px}
+}
+

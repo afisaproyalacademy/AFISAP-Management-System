@@ -1,4 +1,4 @@
-const K='afisap_v3_final';const D={school:{name:'AFISAP ROYAL ACADEMY',year:'2026/2027',term:'Term 1',head:'',phone:'055 610 4186 / 024 272 7685 / 024 874 3558',email:'afisaproyalacademy@gmail.com',address:'Agogo-Boaso'},students:[],staff:[],classes:[],results:[],attendance:[],teacherAttendance:{},fees:[],feeRecords:[],subjects:['Computing','Creative Arts','English','French','History','Mathematics','R M E','Science','TWI']};let d=JSON.parse(localStorage.getItem(K)||'null')||D;
+const K='afisap_v3_final';const D={school:{name:'AFISAP ROYAL ACADEMY',year:'2026/2027',term:'Term 1',head:'',phone:'055 610 4186 / 024 272 7685 / 024 874 3558',email:'afisaproyalacademy@gmail.com',address:'Agogo-Boaso'},students:[],staff:[],classes:[],results:[],attendance:[],teacherAttendance:{},fees:[],feeRecords:[],subjects:['Computing','Creative Arts','English','French','History','Mathematics','R M E','Science','TWI']};let d=JSON.parse(JSON.stringify(D));
 const AFISAP_MANAGEMENT_CLASSES = [
   "Nursery 1","Nursery 2","KG 1","KG 2",
   "Class 1","Class 2","Class 3","Class 4","Class 5","Class 6",
@@ -9,6 +9,35 @@ const AFISAP_CLASSES = [
   "Class 1","Class 2","Class 3","Class 4","Class 5","Class 6",
   "JHS 1","JHS 2","JHS 3"
 ];
+
+function afisapDateOnly(value){
+  const raw=String(value??"").trim();
+  if(!raw)return "";
+  const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso)return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dte=new Date(raw);
+  if(!Number.isNaN(dte.getTime())){
+    const y=dte.getUTCFullYear(),m=String(dte.getUTCMonth()+1).padStart(2,"0"),day=String(dte.getUTCDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+  return raw;
+}
+
+function afisapCentralClassNames(){
+  const created=(d.classes||[]).map(c=>String(c.name||c.className||"").trim()).filter(Boolean);
+  const source=created.length?created:AFISAP_CLASSES;
+  const out=[],seen=new Set();
+  source.forEach(name=>{
+    const clean=String(name||"").trim(),key=clean.toLowerCase();
+    if(clean&&!seen.has(key)){seen.add(key);out.push(clean)}
+  });
+  const rank=new Map(AFISAP_CLASSES.map((n,i)=>[n.toLowerCase(),i]));
+  return out.sort((a,b)=>{
+    const ar=rank.has(a.toLowerCase())?rank.get(a.toLowerCase()):999;
+    const br=rank.has(b.toLowerCase())?rank.get(b.toLowerCase()):999;
+    return ar-br || (ar===999?a.localeCompare(b):0)
+  })
+}
 
 
 /* AFISAP PASSPORT UPLOAD LOADER */
@@ -37,6 +66,8 @@ function afisapShowUploadLoader(title, message, percent){
       .afisap-upload-track{height:10px;background:#e9ecef;border-radius:999px;overflow:hidden;margin:18px 0 9px}
       .afisap-upload-bar{height:100%;width:0%;border-radius:999px;background:currentColor;transition:width .35s ease}
       .afisap-upload-percent{font-size:13px;font-weight:700}
+      .afisap-result-save-spinner{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;margin-right:7px;animation:afisapResultSpin .7s linear infinite}
+      @keyframes afisapResultSpin{to{transform:rotate(360deg)}}
     `;
     document.head.appendChild(style);
   }
@@ -63,7 +94,6 @@ function afisapHideUploadLoader(){
 function migrateStudentPhotos(){
   if(!Array.isArray(d.students)) d.students=[];
   d.students.forEach(s=>{if(!Object.prototype.hasOwnProperty.call(s,"photo"))s.photo="";if(!Object.prototype.hasOwnProperty.call(s,"admissionDate"))s.admissionDate="";});
-  localStorage.setItem(K,JSON.stringify(d));
 }
 migrateStudentPhotos();
 
@@ -75,48 +105,63 @@ function ensureAfisapData(){
   if(!Array.isArray(d.attendance)) d.attendance=[];
   if(!Array.isArray(d.fees)) d.fees=[];
   if(!Array.isArray(d.feeRecords)) d.feeRecords=[];
+  if(!Array.isArray(d.announcementsAssignments)) d.announcementsAssignments=[];
   if(!d.teacherAttendance || typeof d.teacherAttendance!=='object' || Array.isArray(d.teacherAttendance)) d.teacherAttendance={};
-  localStorage.setItem(K,JSON.stringify(d));
+  if(!d.reportCardDates || typeof d.reportCardDates!=='object' || Array.isArray(d.reportCardDates)) d.reportCardDates={};
 }
 ensureAfisapData();
 if(!d.adminProfile || typeof d.adminProfile!=='object') d.adminProfile={photo:''};
 if(typeof d.adminProfile.photo!=='string') d.adminProfile.photo='';
-localStorage.setItem(K,JSON.stringify(d));
-
-
 /* AFISAP CLOUD DATABASE INTEGRATION — STUDENTS MODULE */
 const AFISAP_CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxHtxKgKlw8bfGHWmeLsBTl7fFIRLSTHLPjSmjfS1S7WIF4puoIzGKOdnw8HBHRHdCN/exec";
 
+const AFISAP_ADMIN_SESSION_TOKEN_KEY="afisap_admin_session_token_v2";
+function afisapAdminToken(){try{return sessionStorage.getItem(AFISAP_ADMIN_SESSION_TOKEN_KEY)||""}catch(e){return""}}
+function afisapSetAdminToken(token){try{token?sessionStorage.setItem(AFISAP_ADMIN_SESSION_TOKEN_KEY,String(token)):sessionStorage.removeItem(AFISAP_ADMIN_SESSION_TOKEN_KEY)}catch(e){}}
+async function afisapSecurePost(payload,{includeAuth=true}={}){
+  const body=Object.assign({},payload||{});
+  if(includeAuth){const token=afisapAdminToken();if(token)body.authToken=token;}
+  const response=await fetch(AFISAP_CLOUD_API_URL,{
+    method:"POST",redirect:"follow",
+    headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json"},
+    body:JSON.stringify(body),cache:"no-store",credentials:"omit"
+  });
+  if(!response.ok)throw new Error("School database request failed ("+response.status+").");
+  const text=await response.text();
+  try{return JSON.parse(text)}catch(e){throw new Error("School database returned an unreadable response.");}
+}
+const AFISAP_ADMIN_SECURE_ACTIONS=new Set([
+  "read","search","count","create","createFeeRecordFast","update","delete","bulkCreateFees","bulkPromoteStudents","adminGetPendingPromotions","adminApplyPromotionRollover","recalculatePositions","saveStudentAttendanceBatch",
+  "configGet","configSet","adminProfileGet","adminProfileSet","driveUpload","driveGet","driveDelete","driveList",
+  "adminGetTeacherLogin","adminSetTeacherCredentials","adminResetTeacherPassword","adminSetTeacherLoginStatus"
+]);
+
+
+async function afisapVerifyLiveFeesBackend(){
+  // Compatibility no-op. Fee operations must be decided by the actual
+  // authenticated write response, not by a separate deployment-version probe.
+  return {success:true};
+}
+
+
 function afisapCloudPost(payload){
   try{
-    /*
-     * Google Apps Script does not expose a readable CORS response for this
-     * browser request pattern. The old implementation used no-cors, which
-     * meant the browser could not verify whether Google Sheets actually
-     * accepted the write. We now use the same JSONP channel already used
-     * successfully for reads, while the Apps Script doGet handler accepts
-     * the complete request in the payload parameter.
-     */
-    return afisapCloudJsonp({
-      action:String(payload && payload.action || ""),
-      payload:JSON.stringify(payload || {})
-    }).then(result=>{
-      if(!result || result.success!==true){
-        const message=(result && result.error) ? result.error : "Cloud database write failed.";
+    return afisapSecurePost(payload,{includeAuth:true}).then(result=>{
+      if(!result||result.success!==true){
+        const message=(result&&result.error)?result.error:"Cloud database write failed.";
         console.error("AFISAP cloud write failed:",message,result);
       }
       return result;
-    }).catch(error=>{
-      console.error("AFISAP cloud write request failed:",error);
-      return {success:false,error:error && error.message ? error.message : "Cloud database request failed."};
-    });
+    }).catch(error=>({success:false,error:error&&error.message?error.message:"Cloud database request failed."}));
   }catch(e){
-    console.error("AFISAP cloud write setup failed:",e);
-    return Promise.resolve({success:false,error:e && e.message ? e.message : "Cloud database request failed."});
+    return Promise.resolve({success:false,error:e&&e.message?e.message:"Cloud database request failed."});
   }
 }
 
 function afisapCloudJsonp(params){
+  if(AFISAP_ADMIN_SECURE_ACTIONS.has(String(params&&params.action||""))){
+    return afisapSecurePost(params,{includeAuth:true});
+  }
   return new Promise((resolve,reject)=>{
     const callback="afisapCloudCb_"+Date.now()+"_"+Math.floor(Math.random()*100000);
     const script=document.createElement("script");
@@ -124,7 +169,7 @@ function afisapCloudJsonp(params){
     const timer=setTimeout(()=>{
       cleanup();
       reject(new Error("Cloud database request timed out."));
-    },15000);
+    },45000);
     function cleanup(){
       clearTimeout(timer);
       try{delete window[callback];}catch(e){window[callback]=undefined;}
@@ -146,27 +191,24 @@ function afisapCloudJsonp(params){
 /* ============================================================
  * AFISAP MULTI-DEVICE CLOUD AUTH + SYNC
  * Google Sheets/Drive are the shared source of truth.
- * Browser localStorage is only a cache/fallback.
+ * Browser state is temporary display/session state only; central storage remains authoritative.
  * ============================================================ */
-async function afisapAuthStatus(email){
-  return afisapCloudJsonp({
-    action:"authStatus",
-    email:String(email||"").trim().toLowerCase()
-  });
+async function afisapAuthLogin(email,password){
+  return afisapSecurePost({action:"authLogin",email:String(email||"").trim().toLowerCase(),password:String(password||"")},{includeAuth:false});
 }
-async function afisapAuthVerify(email,password){
-  return afisapCloudJsonp({
-    action:"authVerify",
-    email:String(email||"").trim().toLowerCase(),
-    password:String(password||"")
-  });
+async function afisapAuthRequestReset(email){
+  return afisapSecurePost({action:"authRequestReset",email:String(email||"").trim().toLowerCase()},{includeAuth:false});
 }
-async function afisapAuthSetPassword(email,password){
-  return afisapCloudJsonp({
-    action:"authSetPassword",
-    email:String(email||"").trim().toLowerCase(),
-    password:String(password||"")
-  });
+async function afisapAuthResetPassword(email,otp,password){
+  return afisapSecurePost({action:"authResetPassword",email:String(email||"").trim().toLowerCase(),otp:String(otp||"").trim(),password:String(password||"")},{includeAuth:false});
+}
+async function afisapAuthSessionStatus(){
+  return afisapSecurePost({action:"authSessionStatus",authToken:afisapAdminToken()},{includeAuth:false});
+}
+async function afisapAuthLogout(){
+  const token=afisapAdminToken();
+  try{return await afisapSecurePost({action:"authLogout",authToken:token},{includeAuth:false})}
+  finally{afisapSetAdminToken("")}
 }
 async function afisapLoadCentralConfig(){
   try{
@@ -249,10 +291,12 @@ async function afisapSyncAllFromCloud(){
       afisapCloudJsonp({action:"read",sheet:"Teacher Attendance"}),
       afisapCloudJsonp({action:"read",sheet:"Results"}),
       afisapCloudJsonp({action:"read",sheet:"Fees"}),
-      afisapCloudJsonp({action:"read",sheet:"Subjects"})
+      afisapCloudJsonp({action:"read",sheet:"Subjects"}),
+      afisapCloudJsonp({action:"read",sheet:"Academic Settings"}),
+      afisapCloudJsonp({action:"read",sheet:"Announcements & Assignments"})
     ]);
 
-    const [stuR,staffR,classR,attR,tattR,resR,feeR,subR]=results;
+    const [stuR,staffR,classR,attR,tattR,resR,feeR,subR,academicSettingsR,announcementsR]=results;
     const ok=x=>x?.success===true && Array.isArray(x.records);
 
     if(ok(stuR)){
@@ -278,6 +322,12 @@ async function afisapSyncAllFromCloud(){
               );
             }
           }
+          student._afisapPromotedTo=String(r["Promoted To"]||r["Promotion Class"]||"").trim();
+          student._afisapPreviousClass=String(r["Previous Class"]||"").trim();
+          student._afisapPromotionAt=String(r["Promotion Applied At"]||r["Promotion Date"]||"").trim();
+          student._afisapPromotionStatus=String(r["Promotion Status"]||"").trim().toLowerCase();
+          student._afisapPromotionAcademicYear=String(r["Promotion Academic Year"]||"").trim();
+          student._afisapPromotionEffectiveAcademicYear=String(r["Promotion Effective Academic Year"]||"").trim();
           return student;
         });
     }
@@ -348,8 +398,8 @@ async function afisapSyncAllFromCloud(){
         const sid=String(r["Student ID"]||"").trim();
         const st=studentMap.get(sid);
         const present=String(r["Present"]??r["Status"]??"").trim().toLowerCase();
-        a[aid]={studentId:st?st.id:sid,studentSid:sid,date:String(r["Date"]||"").trim(),
-          present:["yes","true","1"].includes(present),status:String(r["Present"]||"").trim()};
+        a[aid]={studentId:st?st.id:sid,studentSid:sid,date:String(r["Date"]||r["Attendance Date"]||"").trim(),
+          present:["yes","true","1"].includes(present),status:String(r["Present"]||r["Status"]||"").trim(),academicYear:String(r["Academic Year"]||"").trim(),term:String(r["Term"]||"").trim(),attendanceId:aid};
       });
       d.attendance=a;
     }
@@ -360,8 +410,8 @@ async function afisapSyncAllFromCloud(){
         const aid=String(r["Attendance ID"]||Date.now()).trim();
         const sid=String(r["Staff ID"]||"").trim();
         const present=String(r["Present"]??r["Status"]??"").trim().toLowerCase();
-        a[aid]={staffId:sid,date:String(r["Date"]||"").trim(),
-          present:["yes","true","1"].includes(present),status:String(r["Present"]||"").trim()};
+        a[aid]={attendanceId:aid,staffId:sid,date:String(r["Date"]||"").trim(),
+          present:["yes","true","1"].includes(present),status:String(r["Present"]||"").trim(),dateCreated:String(r["Date Created"]||"").trim(),lastUpdated:String(r["Last Updated"]||"").trim()};
       });
       d.teacherAttendance=a;
     }
@@ -375,6 +425,7 @@ async function afisapSyncAllFromCloud(){
           studentId:st?st.id:sid,studentSid:sid,
           studentName:String(r["Student Name"]||"").trim(),
           subject:String(r["Subject"]||"").trim(),
+          className:String(r["Class"]||"").trim(),class:String(r["Class"]||"").trim(),
           cs:Number(r["Class Score"]||0),es:Number(r["Exam Score"]||0),
           position:String(r["Position"]||"").trim(),
           remarks:String(r["Remarks"]||"").trim(),
@@ -386,18 +437,45 @@ async function afisapSyncAllFromCloud(){
       });
     }
 
+    if(ok(resR)){
+      afisapRecalculateAllAcademicPositionsLocally();
+    }
+
     if(ok(feeR)){
-      d.feeRecords=feeR.records.filter(r=>String(r["Fee ID"]||"").trim()).map(r=>{
-        const sid=String(r["Student ID"]||"").trim();
-        const st=studentMap.get(sid);
+      const rows=feeR.records.filter(r=>String(r["Fee ID"]||"").trim());
+      {
+        const feeItemMap=new Map();
+        rows.filter(r=>/^FEE_ITEM\|/i.test(String(r["Fee ID"]||"")))
+          .map(r=>({id:String(r["Fee ID"]),sheetRow:Number(r["__SheetRow"]||0),name:String(r["Fee Item"]||"").trim(),amount:Number(r["Amount Due"]||0)}))
+          .filter(x=>x.name)
+          .forEach(x=>{
+            const key=x.name.toLowerCase();
+            if(!feeItemMap.has(key))feeItemMap.set(key,x);
+          });
+        d.fees=[...feeItemMap.values()];
+      }
+      d.feeRecords=rows.filter(r=>!/^FEE_ITEM\|/i.test(String(r["Fee ID"]||""))).map(r=>{
+        let sid=String(r["Student ID"]||"").trim(),st=studentMap.get(sid);
+        if(!st){
+          const admission=String(r["Admission Number"]||"").trim().toLowerCase();
+          const feeName=String(r["Student Name"]||"").trim().toLowerCase().replace(/\s+/g," ");
+          const matches=(d.students||[]).filter(s=>{
+            const sadm=String(s.admissionNumber||s["Admission Number"]||"").trim().toLowerCase();
+            const sname=String(s.name||[s.firstName,s.middleName,s.surname].filter(Boolean).join(" ")).trim().toLowerCase().replace(/\s+/g," ");
+            return (admission&&sadm===admission)||(!admission&&feeName&&sname===feeName);
+          });
+          if(matches.length===1){st=matches[0];sid=String(st.sid||st.studentId||st["Student ID"]||"").trim();}
+        }
         return {
           id:String(r["Fee ID"]),feeId:String(r["Fee ID"]),
+          sheetRow:Number(r["__SheetRow"]||0),
           studentId:st?st.id:sid,studentSid:sid,
           admissionNumber:String(r["Admission Number"]||"").trim(),
           studentName:String(r["Student Name"]||"").trim(),
           feeItem:String(r["Fee Item"]||"").trim(),
           amountDue:Number(r["Amount Due"]||0),amountPaid:Number(r["Amount Paid"]||0),
-          balance:Number(r["Balance"]||0),date:String(r["Date"]||"").trim(),
+          balance:Number(r["Balance"]??Math.max(0,Number(r["Amount Due"]||0)-Number(r["Amount Paid"]||0))),
+          date:String(r["Date"]||"").trim(),
           academicYear:String(r["Academic Year"]||"").trim(),
           term:String(r["Term"]||"").trim(),
           dateCreated:String(r["Date Created"]||"").trim(),
@@ -415,6 +493,49 @@ async function afisapSyncAllFromCloud(){
       }
     }
 
+    if(ok(academicSettingsR)){
+      const dateStore={};
+      academicSettingsR.records.forEach(r=>{
+        const settingId=String(r["Setting ID"]||"").trim();
+        if(!settingId.toLowerCase().startsWith("report-card-dates|")) return;
+        const academicYear=String(r["Academic Year"]||"").trim();
+        const term=afisapNormalizeReportTerm(r["Term"]||"");
+        if(!academicYear || !term) return;
+        dateStore[afisapReportCardDateKey(academicYear,term)]={
+          settingId,
+          academicYear,
+          term,
+          vacationDate:String(r["Vacation Date"]||"").trim(),
+          openingDate:String(r["Opening Date"]||"").trim(),
+          lastUpdated:String(r["Last Updated"]||"").trim()
+        };
+      });
+      d.reportCardDates=dateStore;
+    }
+
+    if(ok(announcementsR)){
+      d.announcementsAssignments=announcementsR.records
+        .filter(r=>String(r["Announcement ID"]||"").trim())
+        .map(r=>({
+          id:String(r["Announcement ID"]||"").trim(),
+          type:String(r["Type"]||"Announcement").trim(),
+          title:String(r["Title"]||"").trim(),
+          message:String(r["Message"]||"").trim(),
+          className:String(r["Class"]||"").trim(),
+          subject:String(r["Subject"]||"").trim(),
+          targetAudience:String(r["Target Audience"]||"").trim(),
+          datePosted:String(r["Date Posted"]||"").trim(),
+          dueDate:String(r["Due Date"]||"").trim(),
+          attachmentFileId:String(r["Attachment"]||"").trim(),
+          attachmentName:String(r["Attachment Name"]||"").trim(),
+          status:String(r["Status"]||"Published").trim(),
+          createdBy:String(r["Created By"]||"Administrator").trim(),
+          academicYear:String(r["Academic Year"]||"").trim(),
+          term:String(r["Term"]||"").trim(),
+          lastUpdated:String(r["Last Updated"]||"").trim()
+        }));
+    }
+
     persist();
     return {success:true};
   }catch(e){
@@ -423,6 +544,92 @@ async function afisapSyncAllFromCloud(){
   }
 }
 
+
+
+function afisapNormalizeReportTerm(term){
+  const raw=String(term||"").trim();
+  if(!raw) return "";
+  const m=raw.match(/(\d+)/);
+  return m ? "Term "+m[1] : raw;
+}
+
+function afisapReportCardDateKey(year,term){
+  return String(year||"").trim()+"|"+afisapNormalizeReportTerm(term);
+}
+
+function afisapGetReportCardDates(year,term){
+  const store=(d.reportCardDates && typeof d.reportCardDates==="object") ? d.reportCardDates : {};
+  const key=afisapReportCardDateKey(year,term);
+  const found=store[key];
+  if(found && typeof found==="object"){
+    return {
+      vacationDate:String(found.vacationDate||found["Vacation Date"]||"").trim(),
+      openingDate:String(found.openingDate||found["Opening Date"]||"").trim()
+    };
+  }
+
+  // Legacy compatibility only for the school's currently selected period.
+  const schoolYear=String(d.school?.year||"").trim();
+  const schoolTerm=afisapNormalizeReportTerm(d.school?.term||"");
+  if(String(year||"").trim()===schoolYear && afisapNormalizeReportTerm(term)===schoolTerm){
+    return {
+      vacationDate:String(d.school?.vacationDate||"").trim(),
+      openingDate:String(d.school?.openingDate||d.school?.reopeningDate||"").trim()
+    };
+  }
+  return {vacationDate:"",openingDate:""};
+}
+
+function afisapFormatReportCardDate(value){
+  const raw=String(value||"").trim();
+  if(!raw) return "";
+  const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return raw;
+  const year=Number(m[1]), month=Number(m[2]), day=Number(m[3]);
+  if(!year || month<1 || month>12 || day<1 || day>31) return "";
+  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const mod100=day%100;
+  const suffix=(mod100>=11&&mod100<=13)?"th":({1:"st",2:"nd",3:"rd"}[day%10]||"th");
+  return day+suffix+" "+months[month-1]+" "+year;
+}
+
+function afisapReportCardDateSettingId(year,term){
+  return "report-card-dates|"+String(year||"").trim()+"|"+afisapNormalizeReportTerm(term);
+}
+
+async function afisapSaveReportCardDatesToCloud(year,term,vacationDate,openingDate){
+  const academicYear=String(year||"").trim();
+  const normalizedTerm=afisapNormalizeReportTerm(term);
+  const settingId=afisapReportCardDateSettingId(academicYear,normalizedTerm);
+  const now=new Date().toISOString();
+  const data={
+    "Setting ID":settingId,
+    "Academic Year":academicYear,
+    "Term":normalizedTerm,
+    "Vacation Date":String(vacationDate||"").trim(),
+    "Opening Date":String(openingDate||"").trim(),
+    "Last Updated":now
+  };
+
+  // Update first so an existing period is edited in place. If it does not yet
+  // exist, create exactly one Academic Settings row for that Year + Term.
+  let result=await afisapCloudPost({
+    action:"update",
+    sheet:"Academic Settings",
+    idField:"Setting ID",
+    idValue:settingId,
+    data
+  });
+
+  if(!result || result.success!==true){
+    result=await afisapCloudPost({
+      action:"create",
+      sheet:"Academic Settings",
+      data
+    });
+  }
+  return result;
+}
 
 async function afisapResolveStudentName(student){
   const localName=String(
@@ -467,6 +674,49 @@ async function afisapResolveStudentName(student){
   return "";
 }
 
+/* AFISAP CLASS ROSTER — Roll No. / No. on Roll
+   Roll No. is independent of academic Position. Existing valid class roll
+   numbers are preserved; students without one receive the next available
+   number in the current class roster. No. on Roll is always calculated from
+   the student's current class. */
+function afisapClassRosterInfo(student){
+  const students=Array.isArray(d.students)?d.students:[];
+  const className=String(student&&(student.class||student.className)||"").trim();
+  if(!className) return {rollNo:"",noOnRoll:0};
+
+  const members=students.filter(s=>
+    String(s&&(s.class||s.className)||"").trim().toLowerCase()===className.toLowerCase()
+  );
+  const assigned=new Map();
+  const used=new Set();
+
+  // Preserve existing valid, unique roll numbers in the class.
+  members.forEach(s=>{
+    const raw=String(s&&(s.rollNo||s["Roll No."])||"").trim();
+    const n=/^\d+$/.test(raw)?Number(raw):0;
+    if(n>0&&!used.has(n)){
+      used.add(n);
+      assigned.set(s,n);
+    }
+  });
+
+  // Assign only missing/duplicate roll numbers using the current roster order.
+  let next=1;
+  members.forEach(s=>{
+    if(assigned.has(s)) return;
+    while(used.has(next)) next++;
+    assigned.set(s,next);
+    used.add(next);
+    next++;
+  });
+
+  const n=assigned.get(student)||0;
+  return {
+    rollNo:n?String(n).padStart(2,"0"):"",
+    noOnRoll:members.length
+  };
+}
+
 /* AFISAP GOOGLE DRIVE — Student Passport Photos */
 
 async function afisapPreparePassportPhoto(file){
@@ -498,138 +748,22 @@ async function afisapPreparePassportPhoto(file){
 }
 
 async function afisapDriveUpload(file, category, ownerId){
-  if(!file) throw new Error("No file selected.");
-  if(file.size > 15*1024*1024) throw new Error("File is larger than 15 MB.");
-
+  if(!file)throw new Error("No file selected.");
+  if(file.size>15*1024*1024)throw new Error("File is larger than 15 MB.");
   const data=await new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.onload=()=>resolve(String(reader.result||""));
     reader.onerror=()=>reject(new Error("Could not read the selected file."));
     reader.readAsDataURL(file);
   });
-
-  const id=String(ownerId||"").trim();
-  const originalCategory=String(category||"school-documents").trim();
-  let cat=originalCategory;
-
-  // The deployed Apps Script recognizes school-documents but not admin-profile.
-  // Administrator profile photos therefore use the existing School Documents
-  // folder so the upload and verification target are identical.
-  if(cat==="admin-profile") cat="school-documents";
-
-  await fetch(AFISAP_CLOUD_API_URL,{
-    method:"POST",
-    mode:"no-cors",
-    headers:{"Content-Type":"text/plain;charset=UTF-8"},
-    body:JSON.stringify({
-      action:"driveUpload",
-      fileName:file.name,
-      mimeType:file.type||"application/octet-stream",
-      fileData:data,
-      category:cat,
-      studentId:id
-    })
-  });
-
-  // Give Apps Script a brief moment to finish DriveApp.createFile().
-  await new Promise(resolve=>setTimeout(resolve,1500));
-
-  // Student/Staff uploads verify against their Sheets record. Admin profile
-  // uploads are standalone Drive files, so verify them by listing the target
-  // category folder instead.
-  if(originalCategory==="admin-profile"){
-    const verify=await afisapCloudJsonp({
-      action:"driveList",
-      payload:JSON.stringify({
-        action:"driveList",
-        category:"school-documents",
-        studentId:""
-      })
-    });
-
-    if(verify && verify.success===true && Array.isArray(verify.files)){
-      const recent=verify.files
-        .filter(f=>String(f.mimeType||"").toLowerCase().startsWith("image/"))
-        .sort((a,b)=>{
-          const ad=new Date(String(a.lastUpdated||a.dateCreated||0)).getTime()||0;
-          const bd=new Date(String(b.lastUpdated||b.dateCreated||0)).getTime()||0;
-          return ad-bd;
-        });
-
-      if(recent.length){
-        return {
-          success:true,
-          fileId:String(recent[recent.length-1].fileId),
-          fileName:String(recent[recent.length-1].fileName||file.name),
-          mimeType:String(recent[recent.length-1].mimeType||file.type||"image/jpeg"),
-          verified:true
-        };
-      }
-    }
-
-    // One retry handles the normal delay between DriveApp.createFile() and
-    // the folder listing becoming visible to the follow-up read.
-    await new Promise(resolve=>setTimeout(resolve,1600));
-    const retry=await afisapCloudJsonp({
-      action:"driveList",
-      payload:JSON.stringify({
-        action:"driveList",
-        category:"school-documents",
-        studentId:""
-      })
-    });
-
-    if(retry && retry.success===true && Array.isArray(retry.files)){
-      const recentRetry=retry.files
-        .filter(f=>String(f.mimeType||"").toLowerCase().startsWith("image/"))
-        .sort((a,b)=>{
-          const ad=new Date(String(a.lastUpdated||a.dateCreated||0)).getTime()||0;
-          const bd=new Date(String(b.lastUpdated||b.dateCreated||0)).getTime()||0;
-          return ad-bd;
-        });
-
-      if(recentRetry.length){
-        const found=recentRetry[recentRetry.length-1];
-        return {
-          success:true,
-          fileId:String(found.fileId),
-          fileName:String(found.fileName||file.name),
-          mimeType:String(found.mimeType||file.type||"image/jpeg"),
-          verified:true
-        };
-      }
-    }
-
-    throw new Error("Administrator photo could not be confirmed in Google Drive.");
-  }
-
-  // Existing student/staff workflow.
-  let sheet="Students", idField="Student ID", linkField="Passport Photo";
-  if(cat==="staff-passports"){
-    sheet="Teachers"; idField="Staff ID";
-  }else if(cat==="staff-documents"){
-    sheet="Teachers"; idField="Staff ID"; linkField="Ghana Card";
-  }
-
-  if(id){
-    const verify=await afisapCloudJsonp({
-      action:"search",
-      sheet:sheet,
-      field:idField,
-      value:id
-    });
-
-    if(verify && verify.success===true && Array.isArray(verify.records) && verify.records.length){
-      const row=verify.records[verify.records.length-1];
-      const fileId=String(row[linkField]||"").trim();
-      if(fileId){
-        return {success:true,fileId:fileId,fileName:file.name,mimeType:file.type||"application/octet-stream",verified:true};
-      }
-    }
-  }
-
-  throw new Error("Google Drive upload could not be confirmed yet. Please try again.");
+  const result=await afisapSecurePost({
+    action:"driveUpload",fileName:file.name,mimeType:file.type||"application/octet-stream",
+    fileData:data,category:String(category||"school-documents"),studentId:String(ownerId||"").trim()
+  },{includeAuth:true});
+  if(!result?.success)throw new Error(result?.error||"Google Drive upload was not confirmed.");
+  return result;
 }
+
 function afisapDriveFileId(value){
   const raw=String(value||"").trim();
   if(!raw) return "";
@@ -772,6 +906,8 @@ function afisapStudentToCloud(s){
     "Date of Birth":String(s.dob||s.dateOfBirth||"").trim(),
     "Admission Date":String(s.admissionDate||"").trim(),
     "Class":String(s.class||s.className||"").trim(),
+    "Roll No.":String(s.rollNo||s["Roll No."]||"").trim(),
+    "No. on Roll":String(s.noOnRoll||s["No. on Roll"]||"").trim(),
     "Academic Year":String((d.school&&d.school.year)||"").trim(),
     "Status":String(s.status||"Active").trim(),
     "Guardian Name":String(s.guardian||s.guardianName||"").trim(),
@@ -795,9 +931,11 @@ function afisapCloudToStudent(r){
     middleName:String(r["Middle Name"]||"").trim(),
     name:[r["First Name"],r["Middle Name"],r["Last Name"]].map(v=>String(v||"").trim()).filter(Boolean).join(" "),
     dob:String(r["Date of Birth"]||"").trim(),
-    admissionDate:String(r["Admission Date"]||"").trim(),
+    admissionDate:afisapDateOnly(r["Admission Date"]),
     gender:String(r["Gender"]||"").trim(),
     class:String(r["Class"]||"").trim(),
+    rollNo:String(r["Roll No."]||"").trim(),
+    noOnRoll:String(r["No. on Roll"]||"").trim(),
     guardian:String(r["Guardian Name"]||"").trim(),
     guardianContact:String(r["Guardian Contact"]||"").trim(),
     contact:String(r["Guardian Contact"]||"").trim(),
@@ -816,12 +954,12 @@ function afisapCloudToStudent(r){
 function afisapCloudCreateStudent(s){
   return afisapCloudPost({action:"create",sheet:"Students",data:afisapStudentToCloud(s)});
 }
-function afisapCloudUpdateStudent(s){
+function afisapCloudUpdateStudent(s,originalSid){
   return afisapCloudPost({
     action:"update",
     sheet:"Students",
     idField:"Student ID",
-    idValue:String(s.sid||""),
+    idValue:String(originalSid||s.sid||""),
     data:afisapStudentToCloud(s)
   });
 }
@@ -888,30 +1026,15 @@ async function afisapSyncStudentsFromCloud(){
   }
 }
 
-/* AFISAP V3 Administrator Authentication
-   Allowed administrator accounts:
-   - afisaproyalacademy@gmail.com
-   - appiatusr@gmail.com
-   Note: this is an offline/static application. Passwords are stored locally
-   in the browser and therefore this is application-level access control,
-   not server-side security. */
+/* AFISAP Administrator Authentication — server-side session authorization. */
 (function(){
-  const ALLOWED_EMAILS=[
-    "afisaproyalacademy@gmail.com",
-    "appiatusr@gmail.com"
-  ];
-  const AUTH_KEY="afisap_admin_auth_v1";
   const SESSION_KEY="afisap_admin_authenticated_v1";
 
   function normalizeEmail(v){ return String(v||"").trim().toLowerCase(); }
-  function isAllowedEmail(email){ return ALLOWED_EMAILS.includes(normalizeEmail(email)); }
 
-  // Central Apps Script authentication is the source of truth.
-  // Remove any plaintext password cache left by older browser-only versions.
-  try{ localStorage.removeItem(AUTH_KEY); }catch(e){}
 
   function authenticated(){
-    return sessionStorage.getItem(SESSION_KEY)==="1";
+    return !!afisapAdminToken();
   }
 
   let authSlideTimer=null;
@@ -947,7 +1070,7 @@ async function afisapSyncStudentsFromCloud(){
       <div class="afisap-auth-shell">
         <section class="afisap-auth-slideshow" aria-label="AFISAP Royal Academy photo slideshow">
           <div class="afisap-auth-slides">
-            ${Array.from({length:10},(_,i)=>`<img class="afisap-auth-slide${i===0?" is-active":""}" src="login_slides/slide-${String(i+1).padStart(2,"0")}.png" alt="AFISAP Royal Academy school activity ${i+1}" loading="${i===0?"eager":"lazy"}">`).join("")}
+            <img class="afisap-auth-slide is-active afisap-auth-main-photo" src="admin_login_front.jpg" alt="AFISAP Royal Academy learning environment" loading="eager">
           </div>
           <div class="afisap-auth-slide-overlay"></div>
           <div class="afisap-auth-branding">
@@ -961,9 +1084,7 @@ async function afisapSyncStudentsFromCloud(){
             <strong>Excellence in Education</strong>
             <span>Building confident, knowledgeable and responsible learners.</span>
           </div>
-          <div class="afisap-auth-dots" aria-hidden="true">
-            ${Array.from({length:10},(_,i)=>`<span class="afisap-auth-dot${i===0?" is-active":""}"></span>`).join("")}
-          </div>
+          <div class="afisap-auth-dots" aria-hidden="true"></div>
         </section>
 
         <section class="afisap-auth-panel">
@@ -989,10 +1110,15 @@ async function afisapSyncStudentsFromCloud(){
               <p class="afisap-auth-help">Password reset is available only for the authorized administrator account.</p>
               <label>Email Address</label>
               <input id="afisapForgotEmail" type="email" placeholder="Enter administrator email" required>
+              <label>Verification Code</label>
+              <div style="display:flex;gap:8px;align-items:end">
+                <input id="afisapResetOtp" inputmode="numeric" maxlength="6" placeholder="6-digit code" required style="flex:1">
+                <button type="button" id="afisapSendResetCode" class="afisap-auth-link" style="white-space:nowrap">Send Code</button>
+              </div>
               <label>New Password</label>
-              <input id="afisapNewPassword" type="password" placeholder="Create a new password" minlength="6" required>
+              <input id="afisapNewPassword" type="password" placeholder="Create a new password" minlength="8" required>
               <label>Confirm New Password</label>
-              <input id="afisapConfirmPassword" type="password" placeholder="Confirm new password" minlength="6" required>
+              <input id="afisapConfirmPassword" type="password" placeholder="Confirm new password" minlength="8" required>
               <button type="submit" class="afisap-auth-primary">RESET PASSWORD</button>
               <button type="button" id="afisapBackLogin" class="afisap-auth-link">Back to Login</button>
             </form>`}
@@ -1015,6 +1141,14 @@ async function afisapSyncStudentsFromCloud(){
             <div class="afisap-auth-footer">Authorized Administrator Access</div>
           </div>
         </section>
+
+        <div id="afisapAdminSignInLoader" class="afisap-admin-signin-loader" hidden>
+          <div class="afisap-admin-signin-loader-card">
+            <img src="afisap_royal_academy_logo.png" alt="AFISAP Royal Academy">
+            <div class="afisap-admin-signin-title">Signing in...</div>
+            <div class="afisap-admin-signin-subtitle">Please wait while your administrator session is verified.</div>
+          </div>
+        </div>
       </div>`;
 
     screen.style.display="flex";
@@ -1027,11 +1161,6 @@ async function afisapSyncStudentsFromCloud(){
         const email=normalizeEmail(document.getElementById("afisapLoginEmail")?.value);
         const password=document.getElementById("afisapLoginPassword")?.value||"";
 
-        if(!isAllowedEmail(email)){
-          showAuthScreen("login","Access denied. Only the two authorized administrator email addresses can log in.");
-          return;
-        }
-
         const submitButton=form.querySelector('button[type="submit"]');
         if(submitButton?.disabled) return;
         if(submitButton){
@@ -1040,33 +1169,26 @@ async function afisapSyncStudentsFromCloud(){
           submitButton.textContent="LOGGING IN…";
         }
 
+        const signInLoader=document.getElementById("afisapAdminSignInLoader");
+        if(signInLoader) signInLoader.hidden=false;
+
         try{
           // One cloud request only. The previous implementation first called
           // authStatus() and then authVerify(); because each request can wait
           // up to 15 seconds, a normal login could take ~30 seconds.
-          const verified=await afisapAuthVerify(email,password);
+          const verified=await afisapAuthLogin(email,password);
 
           if(!verified?.success){
             throw new Error(verified?.error||"Central authentication failed.");
           }
 
-          if(verified.hasPassword){
-            if(!verified.verified){
-              showAuthScreen("login","Incorrect email address or password.");
-              const f=document.getElementById("afisapLoginEmail");
-              if(f) f.value=email;
-              return;
-            }
-          }else{
-            // The central backend alone decides whether a password exists.
-            showAuthScreen("forgot","No central password has been created for this authorized email yet. Create one below.");
-            const f=document.getElementById("afisapForgotEmail");
-            if(f) f.value=email;
+          if(!verified.authenticated||!verified.authToken){
+            showAuthScreen("login","Incorrect email address or password.");
             return;
           }
-
-          sessionStorage.setItem(SESSION_KEY,"1");
-          sessionStorage.setItem("afisap_admin_logged_in","1");
+          afisapSetAdminToken(verified.authToken);
+          sessionStorage.setItem(SESSION_KEY,"server-validated");
+          sessionStorage.setItem("afisap_admin_logged_in","server-validated");
 
           // Authentication succeeded: open immediately. All cloud hydration
           // continues in the background and cannot block the dashboard.
@@ -1081,6 +1203,7 @@ async function afisapSyncStudentsFromCloud(){
             console.warn("AFISAP background cloud hydration failed:",error);
           });
         }catch(error){
+          if(signInLoader) signInLoader.hidden=true;
           console.error("AFISAP central login failed:",error);
           showAuthScreen("login","The central AFISAP service could not be reached. Please check your internet connection and try again.");
           return;
@@ -1096,36 +1219,82 @@ async function afisapSyncStudentsFromCloud(){
       document.getElementById("afisapForgotButton")?.addEventListener("click",()=>showAuthScreen("forgot"));
     }else{
       const form=document.getElementById("afisapForgotForm");
-      form?.addEventListener("submit",function(e){
+      document.getElementById("afisapSendResetCode")?.addEventListener("click",async()=>{
+        const email=normalizeEmail(document.getElementById("afisapForgotEmail")?.value);
+        const sendButton=document.getElementById("afisapSendResetCode");
+        if(sendButton?.disabled)return;
+        if(!email){
+          showAuthScreen("forgot","Enter the administrator email address first.");
+          return;
+        }
+
+        const loader=document.getElementById("afisapAdminSignInLoader");
+        const loaderTitle=loader?.querySelector(".afisap-admin-signin-title");
+        const loaderSub=loader?.querySelector(".afisap-admin-signin-subtitle");
+        let progress=10;
+        let progressTimer=null;
+
+        if(sendButton){
+          sendButton.disabled=true;
+          sendButton.dataset.originalText=sendButton.textContent;
+          sendButton.textContent="Preparing…";
+        }
+
+        if(loader){
+          if(loaderTitle)loaderTitle.textContent="Preparing verification code…";
+          if(loaderSub)loaderSub.innerHTML='Sending code to the authorized administrator email.<br><strong id="afisapResetCodeProgress">10%</strong>';
+          loader.hidden=false;
+          progressTimer=setInterval(()=>{
+            progress=Math.min(90,progress+10);
+            const p=document.getElementById("afisapResetCodeProgress");
+            if(p)p.textContent=progress+"%";
+            if(progress>=90&&progressTimer){clearInterval(progressTimer);progressTimer=null;}
+          },180);
+        }
+
+        try{
+          const r=await afisapAuthRequestReset(email);
+          if(progressTimer){clearInterval(progressTimer);progressTimer=null;}
+          const p=document.getElementById("afisapResetCodeProgress");
+          if(p)p.textContent="100%";
+          if(loaderSub)loaderSub.innerHTML=r?.success
+            ? 'Verification code prepared successfully.<br><strong>100%</strong>'
+            : 'The verification code could not be sent.<br><strong>100%</strong>';
+          await new Promise(resolve=>setTimeout(resolve,180));
+
+          if(!r?.success){
+            showAuthScreen("forgot",r?.error||"The verification code could not be sent. Please try again.");
+          }else{
+            showAuthScreen("forgot",r?.message||"If the account is authorized, a verification code has been sent.");
+          }
+          const f=document.getElementById("afisapForgotEmail");if(f)f.value=email;
+        }catch(e){
+          if(progressTimer){clearInterval(progressTimer);progressTimer=null;}
+          showAuthScreen("forgot","The reset request could not be completed. Please try again.");
+          const f=document.getElementById("afisapForgotEmail");if(f)f.value=email;
+        }finally{
+          if(loader)loader.hidden=true;
+          if(sendButton?.isConnected){
+            sendButton.disabled=false;
+            sendButton.textContent=sendButton.dataset.originalText||"Send Code";
+          }
+        }
+      });
+      form?.addEventListener("submit",async function(e){
         e.preventDefault();
         const email=normalizeEmail(document.getElementById("afisapForgotEmail")?.value);
+        const otp=document.getElementById("afisapResetOtp")?.value||"";
         const p1=document.getElementById("afisapNewPassword")?.value||"";
         const p2=document.getElementById("afisapConfirmPassword")?.value||"";
-
-        if(!isAllowedEmail(email)){
-          showAuthScreen("forgot","Unable to process password reset. Please contact the system administrator.");
-          return;
-        }
-        if(p1.length<6){
-          showAuthScreen("forgot","Password must contain at least 6 characters.");
-          return;
-        }
-        if(p1!==p2){
-          showAuthScreen("forgot","The two passwords do not match.");
-          return;
-        }
-
-        afisapAuthSetPassword(email,p1).then(result=>{
-          if(!result?.success){
-            showAuthScreen("forgot","Password could not be saved centrally. Please try again.");
-            return;
-          }
-          showAuthScreen("login","Password reset successfully. The new password works on all devices.");
-          const f=document.getElementById("afisapLoginEmail");
-          if(f) f.value=email;
-        }).catch(()=>{
-          showAuthScreen("forgot","Password could not be saved centrally. Please try again.");
-        });
+        if(!/^\d{6}$/.test(String(otp).trim())){showAuthScreen("forgot","Enter the 6-digit verification code sent to the administrator email.");return;}
+        if(p1.length<8){showAuthScreen("forgot","Password must contain at least 8 characters.");return;}
+        if(p1!==p2){showAuthScreen("forgot","The two passwords do not match.");return;}
+        try{
+          const result=await afisapAuthResetPassword(email,otp,p1);
+          if(!result?.success){showAuthScreen("forgot",result?.error||"Password could not be reset.");return;}
+          showAuthScreen("login","Password reset successfully. Sign in with the new password.");
+          const f=document.getElementById("afisapLoginEmail");if(f)f.value=email;
+        }catch(e){showAuthScreen("forgot","Password reset could not be completed. Please try again.");}
       });
       document.getElementById("afisapBackLogin")?.addEventListener("click",()=>showAuthScreen("login"));
     }
@@ -1157,22 +1326,55 @@ async function afisapSyncStudentsFromCloud(){
   }
 
   window.afisapShowLogin=function(){
+    // Fast local-first sign-out: clear the browser session immediately so the
+    // administrator never waits for the Google Apps Script logout request.
+    const token=afisapAdminToken();
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem("afisap_admin_logged_in");
+    afisapSetAdminToken("");
     lockDashboard();
-    showAuthScreen("login");
+
+    const currentScreen=document.getElementById("afisapAuthScreen");
+    const loader=document.getElementById("afisapAdminSignInLoader");
+    if(currentScreen) currentScreen.style.display="flex";
+    if(loader){
+      const title=loader.querySelector(".afisap-admin-signin-title");
+      const sub=loader.querySelector(".afisap-admin-signin-subtitle");
+      if(title) title.textContent="Signing out...";
+      if(sub) sub.textContent="Please wait while your administrator session is closed.";
+      loader.hidden=false;
+    }
+
+    // Revoke the server token in the background. The interface does not wait.
+    if(token){
+      afisapSecurePost({action:"authLogout",authToken:token},{includeAuth:false}).catch(()=>null);
+    }
+
+    // Keep the professional sign-out animation visible only briefly.
+    setTimeout(()=>{
+      showAuthScreen("login");
+    },450);
   };
 
   // Expose for logout integration.
   window.afisapIsAuthenticated=authenticated;
 
   // Wait until the document shell exists.
-  function initAuth(){
-    if(authenticated()){
-      revealDashboard();
-      return;
-    }
+  async function initAuth(){
     lockDashboard();
+    if(authenticated()){
+      try{
+        const status=await afisapAuthSessionStatus();
+        if(status?.success&&status.authenticated){
+          revealDashboard();
+          Promise.all([afisapLoadCentralConfig(),afisapSyncAllFromCloud(),afisapLoadCentralAdminProfile()]).catch(()=>{});
+          return;
+        }
+      }catch(e){}
+      afisapSetAdminToken("");
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem("afisap_admin_logged_in");
+    }
     showAuthScreen("login");
   }
   if(document.readyState==="loading"){
@@ -1197,8 +1399,8 @@ function getFeeNotifications(){
 function renderNotificationCount(){
   const el=document.getElementById("notificationCount");
   if(el) el.textContent=String(getFeeNotifications().length);
-}const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function persist(){localStorage.setItem(K,JSON.stringify(d))}
-function save(){persist();render()}function nav(v){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));$('#title').textContent={dashboard:'Dashboard',students:'Students',staff:'Teachers & Staff',classes:'Classes & Subjects',attendance:'Attendance',teacherAttendance:'Teacher Attendance',results:'Results & Marks',reports:'Report Cards',fees:'Fees & Textbooks',settings:'School Setup'}[v];window.view=v;render()}document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>nav(b.dataset.v));
+}const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));function persist(){/* UI memory only. Permanent school data is reloaded from Apps Script/Google Sheets. */}
+function save(){persist();render()}function nav(v){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));$('#title').textContent={dashboard:'Dashboard',students:'Students',staff:'Teachers & Staff',classes:'Classes & Subjects',attendance:'Attendance',teacherAttendance:'Teacher Attendance',results:'Results & Marks',reports:'Report Cards',fees:'Fees & Textbooks',announcements:'Announcements & Assignments',settings:'School Setup'}[v];window.view=v;render()}document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>nav(b.dataset.v));
 function render(){renderNotificationCount();let v=window.view||'dashboard';let a=$('#app');if(v==='dashboard')a.innerHTML=`
 <div class='dashboard-welcome'>
    <div class='dashboard-welcome-content'>
@@ -1255,7 +1457,7 @@ function render(){renderNotificationCount();let v=window.view||'dashboard';let a
     </div>
   </div>
 </div>
-`;else if(v==='students')students();else if(v==='staff')staff();else if(v==='classes')classes();else if(v==='attendance')attendance();else if(v==='teacherAttendance')teacherAttendance();else if(v==='results')results();else if(v==='reports')reports();else if(v==='fees')fees();else settings()}
+`;else if(v==='students')students();else if(v==='staff')staff();else if(v==='classes')classes();else if(v==='attendance')attendance();else if(v==='teacherAttendance')teacherAttendance();else if(v==='results')results();else if(v==='reports')reports();else if(v==='fees')fees();else if(v==='announcements')announcementsAssignments();else settings()}
 function getNameParts(person){
   if(person.surname || person.firstName || person.middleName){
     return {surname:person.surname||'',firstName:person.firstName||'',middleName:person.middleName||''};
@@ -1265,7 +1467,8 @@ function getNameParts(person){
 }
 
 function editStudent(studentId){
-  const s=d.students.find(x=>String(x.id)===String(studentId)); if(!s)return;
+  const wanted=String(studentId??"").trim();
+  const s=d.students.find(x=>String(x.id)===wanted || String(x.sid||x.studentId||"").trim()===wanted); if(!s)return;
   const np=getNameParts(s);
   modal('Edit Student',`<form id="editStudentForm" class="form">
     <label>Student Passport Photo<input id="editStudentPhoto" type="file" accept="image/jpeg,image/png,image/webp">
@@ -1279,9 +1482,10 @@ function editStudent(studentId){
     <label>Surname<input name="surname" value="${esc(np.surname)}" required></label>
     <label>First Name<input name="firstName" value="${esc(np.firstName)}" required></label>
     <label>Middle/Other Name<input name="middleName" value="${esc(np.middleName)}"></label>
-    <label>Date of Birth<input name="dob" type="date" value="${esc(s.dob||'')}"></label>
+    <label>Date of Birth<input name="dob" type="date" value="${esc(afisapDateOnly(s.dob||''))}"></label>
+    <label>Admission Date<input name="admissionDate" type="date" value="${esc(afisapDateOnly(s.admissionDate||''))}"></label>
     <label>Gender<select name="gender"><option value="">Select Gender</option><option ${s.gender==='Male'?'selected':''}>Male</option><option ${s.gender==='Female'?'selected':''}>Female</option></select></label>
-    <label>Class<select name="class" required><option value="">Select Class</option>${AFISAP_CLASSES.map(c=>`<option value="${esc(c)}" ${s.class===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+    <label>Class<select name="class" required><option value="">Select Class</option>${afisapCentralClassNames().map(c=>`<option value="${esc(c)}" ${s.class===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
     <label>Guardian<input name="guardian" value="${esc(s.guardian||'')}"></label>
     <label>Guardian Contact<input name="guardianContact" value="${esc(s.guardianContact||'')}"></label>
     <label>Guardian Email<input name="guardianEmail" type="email" value="${esc(s.guardianEmail||'')}"></label>
@@ -1296,17 +1500,34 @@ function editStudent(studentId){
   });
   $('#editStudentForm').addEventListener('submit',async e=>{
     e.preventDefault(); const f=new FormData(e.target);
-    Object.assign(s,{sid:String(f.get('sid')||'').trim(),surname:String(f.get('surname')||'').trim(),
-      firstName:String(f.get('firstName')||'').trim(),
-      middleName:String(f.get('middleName')||'').trim(),
-      name:[String(f.get('firstName')||'').trim(),String(f.get('middleName')||'').trim(),String(f.get('surname')||'').trim()].filter(Boolean).join(' '),dob:String(f.get('dob')||''),gender:String(f.get('gender')||''),class:String(f.get('class')||''),guardian:String(f.get('guardian')||'').trim(),guardianContact:String(f.get('guardianContact')||'').trim(),guardianEmail:String(f.get('guardianEmail')||'').trim(),address:String(f.get('address')||'').trim(),photo});
-    save();
-    const cloudResult = await afisapCloudUpdateStudent(s);
-    if(!cloudResult || cloudResult.success !== true){
-      alert('Student changes were saved on this computer, but could not be confirmed in Google Sheets.');
-      return;
+    const candidate=Object.assign({},s,{
+      sid:String(f.get('sid')||'').trim(),surname:String(f.get('surname')||'').trim(),
+      firstName:String(f.get('firstName')||'').trim(),middleName:String(f.get('middleName')||'').trim(),
+      name:[String(f.get('firstName')||'').trim(),String(f.get('middleName')||'').trim(),String(f.get('surname')||'').trim()].filter(Boolean).join(' '),
+      dob:afisapDateOnly(f.get('dob')),admissionDate:afisapDateOnly(f.get('admissionDate')),gender:String(f.get('gender')||''),class:String(f.get('class')||''),
+      guardian:String(f.get('guardian')||'').trim(),guardianContact:String(f.get('guardianContact')||'').trim(),
+      guardianEmail:String(f.get('guardianEmail')||'').trim(),address:String(f.get('address')||'').trim(),photo
+    });
+    const originalSid=String(s.sid||"").trim();
+    afisapShowUploadLoader("Updating Student","Saving student information to Google Sheets...",15);
+    try{
+      afisapUpdateUploadLoader("Updating the official student record...",55);
+      const cloudResult=await afisapCloudUpdateStudent(candidate,originalSid);
+      if(!cloudResult || cloudResult.success!==true){
+        throw new Error(String(cloudResult?.error||"Google Sheets did not confirm the update."));
+      }
+      Object.assign(s,candidate,{admissionDate:afisapDateOnly(candidate.admissionDate)});
+      afisapUpdateUploadLoader("Student information updated successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,250));
+      afisapHideUploadLoader();
+      $('#modal').classList.remove('show');
+      nav('students');
+      alert('Student information updated successfully and confirmed in Google Sheets.');
+    }catch(error){
+      afisapUpdateUploadLoader("Student update could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert('Student changes were not saved because Google Sheets did not confirm the update.\n\nReason: '+String(error?.message||error||"Unknown error"));
     }
-    $('#modal').classList.remove('show');nav('students');alert('Student information updated successfully and saved to Google Sheets.');
   });
 
   const editDriveBtn=document.getElementById("afisapEditUploadPassportDrive");
@@ -1395,9 +1616,9 @@ function students(){
             <td>${esc(s.gender)}</td>
             <td>${esc(s.guardian)}</td>
             <td>${esc(s.contact||s.guardianContact||'')}</td>
-            <td>${esc(s.admissionDate||'')}</td>
-            <td><button class='secondary edit-btn' onclick='editStudent("${s.id}")'>Edit</button>
-            <button class='danger' onclick='del("students","${s.id}")'>Delete</button></td>
+            <td>${esc(afisapDateOnly(s.admissionDate||''))}</td>
+            <td><button class='secondary edit-btn' onclick='editStudent("${esc(s.sid||s.id)}")'>Edit</button>
+            <button class='danger' onclick='del("students","${esc(s.sid||s.id)}")'>Delete</button></td>
           </tr>`).join('')||`<tr><td colspan='9' class='empty'>No students yet. The Headmaster/authorized administrator can add them here.</td></tr>`}
       </table>
     </div>
@@ -1419,33 +1640,183 @@ function viewStudentPhoto(studentId){
     </div>`);
 }
 
-function editStaff(staffId){
-  const s=d.staff.find(x=>String(x.id)===String(staffId)); if(!s)return;
+async function editStaff(staffId){
+  const wanted=String(staffId??"").trim();
+  const s=(d.staff||[]).find(x=>
+    String(x.id??"").trim()===wanted ||
+    String(x.sid||x.staffId||x["Staff ID"]||"").trim()===wanted
+  );
+  if(!s){
+    alert("Teacher / staff record not found. Refresh the Teachers & Staff page and try again.");
+    return;
+  }
+
+  if(!confirm("Do you want to edit this staff?")) return;
+
+  afisapShowUploadLoader("Opening Staff Record","Preparing the teacher / staff record for editing...",20);
+  afisapUpdateUploadLoader("Loading the staff information...",70);
+  await new Promise(resolve=>setTimeout(resolve,180));
+  afisapUpdateUploadLoader("Staff record ready.",100);
+  await new Promise(resolve=>setTimeout(resolve,120));
+  afisapHideUploadLoader();
   const known=['Teacher','Headteacher','Head of School','Administrator','Accountant','Admissions Officer'];
   const isOther=!known.includes(s.position);
   modal('Edit Teacher / Staff',`<form id="editStaffForm" class="form">
     <label>Teacher / Staff Passport Photo<input id="editStaffPhoto" type="file" accept="image/jpeg,image/png,image/webp">
-      <div id="editStaffPhotoPreview" class="photo-upload-preview staff-photo-preview">${s.photo?`<img src="${s.photo}" alt="${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))}"><div class="photo-preview-ok">✓ Current photo</div>`:`<span class="photo-preview-placeholder">📷 No passport photo</span>`}</div></label>
+      <div id="editStaffPhotoPreview" class="photo-upload-preview staff-photo-preview">${afisapStaffPhotoSrc(s)?`<img src="${esc(afisapStaffPhotoSrc(s))}" alt="${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))}"><div class="photo-preview-ok">✓ Current photo</div>`:`<span class="photo-preview-placeholder">📷 No passport photo</span>`}</div></label>
     <label>Staff ID<input name="sid" value="${esc(s.sid||'')}" required></label>
     <label>Surname<input name="surname" value="${esc((getNameParts(s)).surname)}" required></label>
     <label>First Name<input name="firstName" value="${esc((getNameParts(s)).firstName)}" required></label>
     <label>Middle/Other Name<input name="middleName" value="${esc((getNameParts(s)).middleName)}"></label>
     <label>Position<select name="position" id="editStaffPosition"><option value="">Select Position</option>${known.map(p=>`<option ${s.position===p?'selected':''}>${p}</option>`).join('')}<option value="Other" ${isOther?'selected':''}>Other</option></select></label>
     <label id="editOtherPositionWrap" style="display:${isOther?'block':'none'}">Other Position<input name="otherPosition" id="editOtherPosition" value="${isOther?esc(s.position):''}" placeholder="Type the position"></label>
-    <label>Class<select name="class"><option value="">Not assigned</option>${AFISAP_CLASSES.map(c=>`<option value="${esc(c)}" ${s.class===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+    <label>Assigned Class(es) <small style="display:block;color:#64748b;margin:4px 0">Select 1, 2 or 3 classes. Hold Ctrl while selecting multiple classes on a computer.</small><select name="class" multiple size="6">${afisapStaffClassOptions(s.class)}</select></label>
     <label>Subject<input name="subject" value="${esc(s.subject||'')}"></label>
     <label>Telephone<input name="phone" value="${esc(s.phone||'')}"></label>
-    <label>Appointment Date<input name="appointmentDate" type="date" value="${esc(s.appointmentDate||'')}"></label>
+    <label>Appointment Date<input name="appointmentDate" type="date" value="${esc(afisapDateOnly(s.appointmentDate||''))}"></label>
     <label>Email<input name="email" type="email" value="${esc(s.email||'')}"></label>
     <div class="wide"><button class="primary" type="submit">Save Changes</button></div>
+    <div class="wide" style="border-top:1px solid #dbe3ec;padding-top:12px">
+      <strong>🔐 Teacher Portal Login</strong>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <label style="grid-column:1/-1">Portal Username<input id="teacherPortalUsername" autocomplete="off" placeholder="e.g. Ama.Kwaku1"></label>
+        <label>Portal Password<input id="teacherPortalPassword" type="password" autocomplete="new-password" placeholder="New password"></label>
+        <label>Confirm Password<input id="teacherPortalPasswordConfirm" type="password" autocomplete="new-password" placeholder="Confirm password"></label>
+      </div>
+      <label style="display:flex;gap:7px;align-items:center;margin-top:6px"><input type="checkbox" id="showTeacherPortalPasswords" style="width:auto"> Show / Hide Password</label>
+      <div style="margin:10px 0"><strong>Portal Login:</strong> <span id="teacherPortalLoginStatus">Checking…</span><span id="teacherPortalLastLogin" style="display:block;font-size:12px;color:#64748b;margin-top:4px"></span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="secondary" id="saveTeacherPortalCredentials">Create / Update Login Credentials</button>
+        <button type="button" class="secondary" id="resetTeacherPortalPassword">Reset Password</button>
+        <button type="button" class="secondary" id="toggleTeacherPortalLogin">Disable Portal Login</button>
+      </div>
+      <small><strong>Username rule:</strong> 6–40 characters with uppercase, lowercase, a number and one special character (. _ - @). Example: <strong>Ama.Kwaku1</strong><br><strong>Password rule:</strong> minimum 8 characters with uppercase, lowercase, a number and a special character.<br>Teacher Portal credentials are controlled by the Administrator. Teachers cannot reset or change their portal password.</small>
+    </div>
   </form>`);
   let photo=s.photo||''; const pi=$('#editStaffPhoto'),pv=$('#editStaffPhotoPreview');
   $('#editStaffPosition').addEventListener('change',e=>{$('#editOtherPositionWrap').style.display=e.target.value==='Other'?'block':'none';});
   pi.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){e.target.value='';alert('Please select a JPG, PNG or WebP image.');return;}const r=new FileReader();r.onload=()=>{photo=r.result;pv.innerHTML=`<img src="${photo}" alt="Teacher passport photo"><div class="photo-preview-name">${esc(f.name)}</div><div class="photo-preview-ok">✓ New photo selected</div>`};r.readAsDataURL(f);});
-  $('#editStaffForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);const pos=String(f.get('position')||'');const oldSid=String(s.sid||'').trim();const newSid=String(f.get('sid')||'').trim();if(d.staff.some(x=>x!==s && String(x.sid||'').trim().toLowerCase()===newSid.toLowerCase())){alert('That Staff ID already exists. Please use a different Staff ID.');return;}if(oldSid!==newSid && d.teacherAttendance && typeof d.teacherAttendance==='object'){Object.keys(d.teacherAttendance).forEach(k=>{const r=d.teacherAttendance[k];if(r && String(r.staffId)===oldSid){const nk=newSid+'_'+String(r.date||'');if(!d.teacherAttendance[nk]){r.staffId=newSid;d.teacherAttendance[nk]=r;}delete d.teacherAttendance[k];}});}Object.assign(s,{sid:String(f.get('sid')||'').trim(),surname:String(f.get('surname')||'').trim(),
-      firstName:String(f.get('firstName')||'').trim(),
+  let teacherPortalLoginState={configured:false,enabled:false,username:''};
+  const teacherPortalStaffId=()=>String(document.querySelector("#editStaffForm [name='sid']")?.value||s.sid||"").trim();
+  const refreshTeacherPortalLogin=async()=>{
+    const result=await afisapSecurePost({action:"adminGetTeacherLogin",staffId:teacherPortalStaffId()},{includeAuth:true}).catch(e=>({success:false,error:e.message}));
+    const status=document.getElementById('teacherPortalLoginStatus'),last=document.getElementById('teacherPortalLastLogin');
+    if(!result?.success){if(status)status.textContent='Unable to load';return;}
+    teacherPortalLoginState=result.login||{};
+    const u=document.getElementById('teacherPortalUsername');if(u&&!u.value)u.value=teacherPortalLoginState.username||'';
+    if(status)status.textContent=teacherPortalLoginState.configured?(teacherPortalLoginState.enabled?'Active':'Disabled'):'Not Set';
+    if(last)last.textContent=teacherPortalLoginState.lastLoginAt?'Last Login: '+teacherPortalLoginState.lastLoginAt:'';
+    const toggle=document.getElementById('toggleTeacherPortalLogin');if(toggle)toggle.textContent=teacherPortalLoginState.enabled?'Disable Portal Login':'Enable Portal Login';
+  };
+  document.getElementById('showTeacherPortalPasswords')?.addEventListener('change',e=>{
+    ['teacherPortalPassword','teacherPortalPasswordConfirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.type=e.target.checked?'text':'password'});
+  });
+  const setTeacherPortalCredentialBusy=async(title,stepText,work)=>{
+    const formEl=document.getElementById('editStaffForm');
+    const buttons=[document.getElementById('saveTeacherPortalCredentials'),document.getElementById('resetTeacherPortalPassword'),document.getElementById('toggleTeacherPortalLogin')].filter(Boolean);
+    const controls=formEl?Array.from(formEl.querySelectorAll('input,select,button,textarea')):[];
+    controls.forEach(el=>el.disabled=true);
+    buttons.forEach(el=>{el.dataset.originalText=el.textContent;el.textContent='Please wait…';});
+    afisapShowUploadLoader(title,stepText,15);
+    try{
+      afisapUpdateUploadLoader(stepText,35);
+      const result=await work();
+      if(!result?.success) throw new Error(String(result?.error||'Unknown error'));
+      afisapUpdateUploadLoader(title+' completed successfully.',100);
+      await new Promise(resolve=>setTimeout(resolve,450));
+      afisapHideUploadLoader();
+      if(typeof $('#modal') !== 'undefined' && $('#modal')) $('#modal').classList.remove('show');
+      nav('staff');
+      return result;
+    }catch(error){
+      afisapUpdateUploadLoader(title+' could not be completed.',100);
+      setTimeout(()=>afisapHideUploadLoader(),700);
+      controls.forEach(el=>el.disabled=false);
+      buttons.forEach(el=>{if(el.dataset.originalText)el.textContent=el.dataset.originalText;});
+      throw error;
+    }
+  };
+  const teacherPortalPasswordOk=password=>password.length>=8&&/[A-Z]/.test(password)&&/[a-z]/.test(password)&&/\d/.test(password)&&/[^A-Za-z0-9\s]/.test(password);
+  document.getElementById('saveTeacherPortalCredentials')?.addEventListener('click',async()=>{
+    const username=String(document.getElementById('teacherPortalUsername')?.value||'').trim(),password=String(document.getElementById('teacherPortalPassword')?.value||''),confirmPassword=String(document.getElementById('teacherPortalPasswordConfirm')?.value||'');
+    const usernameOk=username.length>=6&&username.length<=40&&/^[A-Za-z0-9._@-]+$/.test(username)&&/[A-Z]/.test(username)&&/[a-z]/.test(username)&&/\d/.test(username)&&/[._@-]/.test(username);
+    if(!usernameOk){alert('Username must contain uppercase and lowercase letters, a number, and one special character (. _ - @), with no spaces.\n\nExample: Ama.Kwaku1');return;}
+    if(!teacherPortalPasswordOk(password)){alert('Password must be at least 8 characters and contain uppercase, lowercase, a number, and a special character.');return;}
+    if(password!==confirmPassword){alert('Passwords do not match.');return;}
+    try{
+      await setTeacherPortalCredentialBusy('Creating Teacher Portal Login','Creating username and password and enabling Teacher Portal access...',()=>afisapSecurePost({action:'adminSetTeacherCredentials',staffId:teacherPortalStaffId(),username,password},{includeAuth:true}));
+      alert('Password created successfully. Teacher Portal login is now Active.');
+    }catch(error){alert('Login credentials were not saved.\n\nReason: '+String(error?.message||error||'Unknown error'));}
+  });
+  document.getElementById('resetTeacherPortalPassword')?.addEventListener('click',async()=>{
+    const password=String(document.getElementById('teacherPortalPassword')?.value||''),confirmPassword=String(document.getElementById('teacherPortalPasswordConfirm')?.value||'');
+    if(!teacherPortalPasswordOk(password)){alert('Password must be at least 8 characters and contain uppercase, lowercase, a number, and a special character.');return;}
+    if(password!==confirmPassword){alert('Passwords do not match.');return;}
+    try{
+      await setTeacherPortalCredentialBusy('Resetting Teacher Portal Password','Saving the new password securely...',()=>afisapSecurePost({action:'adminResetTeacherPassword',staffId:teacherPortalStaffId(),password},{includeAuth:true}));
+      alert('Teacher Portal password reset successfully.');
+    }catch(error){alert('Password was not reset.\n\nReason: '+String(error?.message||error||'Unknown error'));}
+  });
+  document.getElementById('toggleTeacherPortalLogin')?.addEventListener('click',async()=>{
+    const enabled=!teacherPortalLoginState.enabled;
+    try{
+      await setTeacherPortalCredentialBusy(enabled?'Enabling Teacher Portal Login':'Disabling Teacher Portal Login',enabled?'Enabling the teacher account...':'Disabling the teacher account...',()=>afisapSecurePost({action:'adminSetTeacherLoginStatus',staffId:teacherPortalStaffId(),enabled},{includeAuth:true}));
+      alert(enabled?'Teacher Portal login enabled successfully.':'Teacher Portal login disabled successfully.');
+    }catch(error){alert('Portal login status was not changed.\n\nReason: '+String(error?.message||error||'Unknown error'));}
+  });
+  // Open the edit form immediately. Teacher Portal credential status is non-blocking
+  // and must never delay the Quick Edit form from becoming usable.
+  setTimeout(()=>{ refreshTeacherPortalLogin().catch(()=>{}); },0);
+  requestAnimationFrame(()=>{
+    const firstEditable=document.querySelector('#editStaffForm [name="sid"]');
+    if(firstEditable) firstEditable.focus();
+  });
+  $('#editStaffForm').addEventListener('submit',async e=>{
+    e.preventDefault();const f=new FormData(e.target);const pos=String(f.get('position')||'');
+    const oldSid=String(s.sid||'').trim(),newSid=String(f.get('sid')||'').trim();
+    let assignedClasses=[];
+    try{assignedClasses=afisapSelectedStaffClasses(e.target)}catch(err){alert(err.message);return;}
+    if(d.staff.some(x=>x!==s && String(x.sid||'').trim().toLowerCase()===newSid.toLowerCase())){
+      alert('That Staff ID already exists. Please use a different Staff ID.');return;
+    }
+    const candidate=Object.assign({},s,{
+      sid:newSid,surname:String(f.get('surname')||'').trim(),firstName:String(f.get('firstName')||'').trim(),
       middleName:String(f.get('middleName')||'').trim(),
-      name:[String(f.get('firstName')||'').trim(),String(f.get('middleName')||'').trim(),String(f.get('surname')||'').trim()].filter(Boolean).join(' '),position:pos==='Other'?String(f.get('otherPosition')||'').trim():pos,class:String(f.get('class')||''),subject:String(f.get('subject')||'').trim(),phone:String(f.get('phone')||'').trim(),email:String(f.get('email')||'').trim(),appointmentDate:String(f.get('appointmentDate')||'').trim(),photo,status:String(s.status||"Active"),dateCreated:s.dateCreated||new Date().toISOString()});save();afisapCloudUpdateStaff(s);$('#modal').classList.remove('show');nav('staff');alert('Teacher / staff information updated successfully.');});
+      name:[String(f.get('firstName')||'').trim(),String(f.get('middleName')||'').trim(),String(f.get('surname')||'').trim()].filter(Boolean).join(' '),
+      position:pos==='Other'?String(f.get('otherPosition')||'').trim():pos,class:assignedClasses.join(', '),
+      subject:String(f.get('subject')||'').trim(),phone:String(f.get('phone')||'').trim(),
+      email:String(f.get('email')||'').trim(),appointmentDate:String(f.get('appointmentDate')||'').trim(),
+      photo,status:String(s.status||"Active"),dateCreated:s.dateCreated||new Date().toISOString()
+    });
+    afisapShowUploadLoader("Updating Teacher / Staff","Saving teacher / staff information to Google Sheets...",15);
+    try{
+      const selectedPhoto=pi?.files?.[0]||null;
+      if(selectedPhoto){
+        afisapUpdateUploadLoader("Preparing passport photo...",35);
+        const uploadFile=await afisapPreparePassportPhoto(selectedPhoto);
+        afisapUpdateUploadLoader("Uploading passport photo to Google Drive...",55);
+        const driveResult=await afisapDriveUpload(uploadFile,"staff-passports",newSid||oldSid);
+        if(!driveResult?.fileId)throw new Error("Google Drive did not return a passport photo File ID.");
+        candidate.passportPhotoFileId=String(driveResult.fileId);
+        candidate.passportPhotoUrl=afisapDriveFileUrl(String(driveResult.fileId));
+        candidate.photo=candidate.passportPhotoUrl;
+      }
+      afisapUpdateUploadLoader("Updating the official Teachers record...",75);
+      const cloudResult=await afisapCloudUpdateStaff(candidate,oldSid);
+      if(!cloudResult||cloudResult.success!==true)throw new Error(String(cloudResult?.error||"Google Sheets did not confirm the update."));
+      Object.assign(s,candidate,{appointmentDate:afisapDateOnly(candidate.appointmentDate)});
+      afisapUpdateUploadLoader("Teacher / staff updated successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,250));
+      afisapHideUploadLoader();
+      $('#modal').classList.remove('show');
+      nav('staff');
+      alert('Teacher / staff information updated successfully and confirmed in Google Sheets.');
+    }catch(error){
+      afisapUpdateUploadLoader("Teacher / staff update could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert('Teacher / staff changes were not saved.\n\nReason: '+String(error?.message||error||"Unknown error"));
+    }
+  });
 }
 function afisapStaffPhotoFileId(staff){
   return afisapDriveFileId(
@@ -1554,8 +1925,8 @@ function staff(){
                   <td>${esc(s.phone||"")}</td>
                   <td>${esc(displayDate(s.appointmentDate||""))}</td>
                   <td>
-                    <button class='secondary edit-btn' onclick='editStaff("${s.id}")'>Edit</button>
-                    <button class='danger' onclick='del("staff","${s.id}")'>Delete</button>
+                    <button class='secondary edit-btn' onclick='editStaff("${esc(s.sid||s.staffId||s.id||"")}")'>Edit</button>
+                    <button class='danger' onclick='del("staff","${esc(s.sid||s.staffId||s.id||"")}")'>Delete</button>
                   </td>
                 </tr>`;
             }).join("") || `
@@ -1652,7 +2023,7 @@ function teacherAttendance(){
             <tbody>
               ${teachers.map(t=>`
                 <tr>
-                  <td>${t.photo?`<img class="staff-attendance-thumb" src="${t.photo}" alt="${esc(teacherName(t))}">`:`<div class="staff-attendance-placeholder">👤</div>`}</td>
+                  <td>${afisapStaffPhotoSrc(t)?`<img class="staff-attendance-thumb" src="${esc(afisapStaffPhotoSrc(t))}" data-staff-drive-file-id="${esc(afisapStaffPhotoFileId(t))}" alt="${esc(teacherName(t))}">`:`<div class="staff-attendance-placeholder">👤</div>`}</td>
                   <td>${esc(t.sid||"")}</td>
                   <td><strong>${esc(teacherName(t))}</strong></td>
                   <td>${esc(t.position||"")}</td>
@@ -1691,7 +2062,7 @@ function teacherAttendance(){
       return `
         <div class="teacher-attendance-row">
           <div class="teacher-attendance-person">
-            ${t.photo?`<img class="staff-attendance-photo" src="${t.photo}" alt="${esc(nm)}" onclick='viewStaffPhoto("${t.id}")'>`:`<div class="staff-attendance-photo-placeholder">👤</div>`}
+            ${afisapStaffPhotoSrc(t)?`<img class="staff-attendance-photo" src="${esc(afisapStaffPhotoSrc(t))}" data-staff-drive-file-id="${esc(afisapStaffPhotoFileId(t))}" alt="${esc(nm)}" onclick='viewStaffPhoto("${t.id}")'>`:`<div class="staff-attendance-photo-placeholder">👤</div>`}
             <div class="teacher-attendance-info">
               <strong>${esc(nm)}</strong>
               <div><b>Staff ID:</b> ${esc(t.sid||"")}</div>
@@ -1704,13 +2075,17 @@ function teacherAttendance(){
               <label><input type="radio" name="teacherAttendance_${esc(radioId)}" value="YES" ${state===true?"checked":""}> <b>YES</b></label>
               <label><input type="radio" name="teacherAttendance_${esc(radioId)}" value="NO" ${state===false?"checked":""}> <b>NO</b></label>
             </div>
-            <small>${state===true?"Saved: 1 day":state===false?"Saved: 0 days":"Not yet recorded for this date"}</small>
+            <small>${state===true?"Saved: 1 day":state===false?"Saved: 0 days":"Not yet recorded for this date"}</small>${previous?`<button type="button" class="danger delete-teacher-attendance" data-attendance-id="${esc(previous.attendanceId||previous.id||((t.sid||t.id)+"_"+date))}" style="margin-top:8px">Delete Attendance</button>`:""}
           </div>
         </div>`;
     }).join("");
+    box.querySelectorAll(".delete-teacher-attendance").forEach(btn=>{
+      btn.addEventListener("click",()=>deleteTeacherAttendanceRecord(btn.dataset.attendanceId));
+    });
+    setTimeout(()=>{afisapHydrateStaffPhotoElements().catch(()=>{});},0);
   }
 
-  window.printTeacherAttendancePreview=function(){
+  window.printTeacherAttendancePreview=async function(){
     const list=Array.isArray(d.staff)?d.staff:[];
     if(!list.length){alert("No teachers or staff have been registered yet.");return;}
 
@@ -1766,10 +2141,20 @@ function teacherAttendance(){
 
     const totalForPrint=(teacher)=>datesForPrint(teacher).length;
 
+    // Resolve each passport from the permanent Google Drive File ID before
+    // building the print table. Never print a raw name/text value as a photo.
+    await Promise.all(list.map(async t=>{
+      const fileId=afisapStaffPhotoFileId(t);
+      if(!fileId)return;
+      const dataUrl=await afisapDrivePhotoDataUrl(fileId).catch(()=> "");
+      if(dataUrl)t._afisapPrintPhoto=dataUrl;
+    }));
+
     const rows=list.map(t=>{
       const dates=datesForPrint(t);
-      const photo=t.photo
-        ? `<img src="${escPrint(t.photo)}" class="teacher-print-photo" alt="${escPrint(nameOf(t))}">`
+      const printPhoto=String(t._afisapPrintPhoto||afisapStaffPhotoSrc(t)||"").trim();
+      const photo=/^(?:data:image\/|https?:\/\/)/i.test(printPhoto)
+        ? `<img src="${escPrint(printPhoto)}" class="teacher-print-photo" alt="${escPrint(nameOf(t))}">`
         : `<div class="teacher-print-photo teacher-print-photo-empty">No Photo</div>`;
       return `<tr>
         <td>${photo}</td>
@@ -2023,66 +2408,239 @@ ${reportHTML}
       if(!chosen){alert("Please mark YES or NO for every teacher before saving.");return;}
     }
 
-    const teacherAttendanceRecords = teachers.map(t=>{
+    const now=new Date().toISOString();
+    const teacherAttendanceRecords=teachers.map(t=>{
       const radioId=String(t.id||t.sid).replace(/[^a-zA-Z0-9_-]/g,"_");
       const chosen=document.querySelector(`input[name="teacherAttendance_${CSS.escape(radioId)}"]:checked`);
       const staffId=String(t.sid||t.id||"").trim();
       const present=chosen.value==="YES";
       const key=staffId+"_"+String(date);
-
-      d.teacherAttendance[key]={
-        staffId:staffId,
-        date:String(date),
-        present:present
-      };
-
       return {
-        "Attendance ID": key,
-        "Staff ID": staffId,
-        "Date": String(date),
-        "Present": present ? "YES" : "NO",
-        "Teacher Name": String(t.name||"").trim(),
-        "Status": String(t.status||"").trim(),
-        "Date Created": new Date().toISOString(),
-        "Last Updated": new Date().toISOString()
+        "Attendance ID":key,
+        "Staff ID":staffId,
+        "Date":String(date),
+        "Present":present?"YES":"NO",
+        "Teacher Name":String(teacherName(t)||"").trim(),
+        "Status":String(t.status||"").trim(),
+        "Date Created":String((d.teacherAttendance[key]&&d.teacherAttendance[key].dateCreated)||now),
+        "Last Updated":now
       };
     });
 
-    persist();
-
+    afisapShowUploadLoader("Saving Teacher Attendance","Saving attendance to Google Sheets...",15);
     try{
-      const cloudResults = await Promise.all(
-        teacherAttendanceRecords.map(record =>
-          afisapCloudPost({
-            action:"create",
-            sheet:"Teacher Attendance",
-            data:record
-          })
-        )
-      );
+      afisapUpdateUploadLoader("Updating the official Teacher Attendance sheet...",55);
+      const result=await afisapCloudPost({
+        action:"saveTeacherAttendanceBatch",
+        records:teacherAttendanceRecords
+      });
+      if(!result||result.success!==true)throw new Error(String(result?.error||"Google Sheets did not confirm the attendance save."));
 
-      const failed = cloudResults.filter(r=>!r || r.success!==true);
-      if(failed.length){
-        console.error("Teacher attendance cloud sync failed:",failed);
-        render();
-        alert("Teacher attendance was saved locally, but one or more records could not be saved to Google Sheets. Please check the connection and try again.");
-        return;
-      }
-    }catch(error){
-      console.error("Teacher attendance cloud sync error:",error);
+      teacherAttendanceRecords.forEach(record=>{
+        const key=String(record["Attendance ID"]);
+        d.teacherAttendance[key]={
+          attendanceId:key,
+          staffId:String(record["Staff ID"]),
+          date:String(record["Date"]),
+          present:String(record["Present"]).toUpperCase()==="YES",
+          status:String(record["Present"]),
+          dateCreated:String(record["Date Created"]||""),
+          lastUpdated:String(record["Last Updated"]||"")
+        };
+      });
+
+      afisapUpdateUploadLoader("Teacher attendance saved successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,250));
+      afisapHideUploadLoader();
       render();
-      alert("Teacher attendance was saved locally, but Google Sheets could not be reached. Please check the connection and try again.");
-      return;
+      alert("Teacher attendance saved successfully to Google Sheets.");
+    }catch(error){
+      afisapUpdateUploadLoader("Teacher attendance could not be saved.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert("Teacher attendance was not saved.\n\nReason: "+String(error?.message||error||"Unknown error"));
     }
+  }
 
-    render();
-    alert("Teacher attendance saved successfully to Google Sheets.");
+  async function deleteTeacherAttendanceRecord(attendanceId){
+    const id=String(attendanceId||"").trim();
+    if(!id)return;
+    if(!confirm("Do you want to delete this teacher attendance record from Google Sheets?"))return;
+    afisapShowUploadLoader("Deleting Teacher Attendance","Deleting attendance from Google Sheets...",15);
+    try{
+      afisapUpdateUploadLoader("Removing the official attendance record...",60);
+      const result=await afisapCloudPost({
+        action:"delete",
+        sheet:"Teacher Attendance",
+        idField:"Attendance ID",
+        idValue:id
+      });
+      if(!result||result.success!==true)throw new Error(String(result?.error||"Google Sheets did not confirm deletion."));
+      delete d.teacherAttendance[id];
+      afisapUpdateUploadLoader("Teacher attendance deleted successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,250));
+      afisapHideUploadLoader();
+      render();
+      alert("Teacher attendance deleted successfully from Google Sheets.");
+    }catch(error){
+      afisapUpdateUploadLoader("Teacher attendance could not be deleted.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert("Attendance was not deleted.\n\nReason: "+String(error?.message||error||"Unknown error"));
+    }
   }
 
   render();
 }
 
-function classes(){$('#app').innerHTML=`<div class='grid'><div class='panel'><button class='primary' onclick='openClass()'>+ Add Class</button>${d.classes.map(c=>`<div class='card' style='margin-top:10px'><b>${esc(c.name)}</b><br><small>Teacher: ${esc(c.teacher||'Not assigned')}</small><br><button class='danger' onclick='del("classes","${c.id}")'>Delete</button></div>`).join('')||'<div class="empty">No classes created.</div>'}</div><div class='panel'><h3>Report Subjects</h3><div class='chips' style='margin-top:15px'>${d.subjects.map(s=>`<span class='chip'>${esc(s)}</span>`).join('')}</div><p>Subjects follow the supplied school report sample.</p></div></div>`}
+function afisapPromotionClassNames(){return afisapCentralClassNames()}
+function afisapStaffClassAssignments(value){
+  return [...new Set(String(value||"").split(/[,;|\n]+/).map(v=>String(v||"").trim()).filter(Boolean))];
+}
+function afisapSelectedStaffClasses(form){
+  const selected=[...new Set((new FormData(form).getAll("class")||[]).map(v=>String(v||"").trim()).filter(Boolean))];
+  if(selected.length>3)throw new Error("A teacher can be assigned to a maximum of 3 classes.");
+  return selected;
+}
+function afisapStaffClassOptions(selectedValue){
+  const selected=new Set(afisapStaffClassAssignments(selectedValue).map(v=>v.toLowerCase()));
+  return afisapCentralClassNames().map(c=>`<option value="${esc(c)}" ${selected.has(String(c).toLowerCase())?"selected":""}>${esc(c)}</option>`).join("");
+}
+function afisapNextAcademicYear(value){
+  const m=String(value||"").match(/(\d{4})\D+(\d{4})/);
+  if(!m)return String(value||"");
+  return `${Number(m[1])+1}/${Number(m[2])+1}`;
+}
+function afisapPromotionNextClass(current){
+  const wanted=String(current||"").trim().toLowerCase();
+  const idx=AFISAP_MANAGEMENT_CLASSES.findIndex(n=>n.toLowerCase()===wanted);
+  return idx>=0&&idx<AFISAP_MANAGEMENT_CLASSES.length-1?AFISAP_MANAGEMENT_CLASSES[idx+1]:"";
+}
+function afisapPromotionStudentName(s){return String(s.name||[s.firstName,s.middleName,s.surname].filter(Boolean).join(" ")||s.sid||"").trim()}
+function classes(){
+  const names=afisapPromotionClassNames();
+  const nextYear=afisapNextAcademicYear(String(d.school&&d.school.year||''));
+  $('#app').innerHTML=`<div class='grid'><div class='panel'><button class='primary' onclick='openClass()'>+ Add Class</button>${d.classes.map(c=>`<div class='card' style='margin-top:10px'><b>${esc(c.name)}</b><br><small>Teacher: ${esc(c.teacher||'Not assigned')}</small><br><button class='danger' onclick='del("classes","${c.id}")'>Delete</button></div>`).join('')||'<div class="empty">No classes created.</div>'}</div><div class='panel'><h3>Report Subjects</h3><div class='chips' style='margin-top:15px'>${d.subjects.map(s=>`<span class='chip'>${esc(s)}</span>`).join('')}</div><p>Subjects follow the supplied school report sample.</p></div></div>
+  <div class='panel afisap-promotion-panel' style='margin-top:18px'>
+    <div class='panel-title'><div><h3>Academic Year Promotion</h3><span>Teachers recommend promotions during Term 3. Students remain in their current classes until the Administrator activates the new academic-year rollover.</span></div></div>
+    <div id='afisapPendingPromotionSummary' class='notice' style='margin:12px 0'>Loading pending teacher promotion recommendations...</div>
+    <div class='afisap-promotion-controls'>
+      <label>New Academic Year<input id='afisapRolloverAcademicYear' value='${esc(nextYear)}' placeholder='e.g. 2027/2028'></label>
+      <div class='afisap-promotion-next'><strong>Current Academic Year:</strong> ${esc(String(d.school&&d.school.year||''))}</div>
+    </div>
+    <div id='afisapPendingPromotionList'></div>
+    <div class='afisap-promotion-actions' style='margin-top:14px'><button type='button' class='primary' id='afisapApplyRollover'>REVIEW & APPLY NEW ACADEMIC YEAR ROLLOVER</button></div>
+    <p style='margin-top:12px;color:#64748b'><small>The rollover moves all pending teacher-approved students together. Existing students in destination classes should first have their own promotion decisions recorded. Manual individual class correction remains available below.</small></p>
+  </div>
+  <div class='panel afisap-promotion-panel' style='margin-top:18px'>
+    <div class='panel-title'><div><h3>Manual Student Class Correction</h3><span>Use this only for correcting an individual student's active class outside the normal academic-year promotion process.</span></div></div>
+    <div class='afisap-promotion-controls'><label>Select Current Class<select id='promotionClass'><option value=''>Select Class</option>${names.map(n=>`<option value='${esc(n)}'>${esc(n)}</option>`).join('')}</select></label><div id='promotionNext' class='afisap-promotion-next'>Select a class to view students.</div></div>
+    <div id='promotionWorkspace'></div>
+  </div>`;
+  const sel=document.getElementById('promotionClass'); if(sel) sel.onchange=()=>{window.afisapCustomPromotionDestination='';afisapRenderPromotionWorkspace(sel.value)};
+  document.getElementById('afisapApplyRollover')?.addEventListener('click',afisapApplyAcademicYearRollover);
+  afisapLoadPendingPromotions();
+}
+
+async function afisapLoadPendingPromotions(){
+  const summary=document.getElementById('afisapPendingPromotionSummary'),list=document.getElementById('afisapPendingPromotionList');
+  if(!summary||!list)return;
+  try{
+    const r=await afisapCloudPost({action:'adminGetPendingPromotions'});
+    if(!r?.success)throw new Error(r?.error||'Pending promotions could not be loaded.');
+    const rows=Array.isArray(r.promotions)?r.promotions:[];
+    summary.innerHTML=`<strong>${rows.length}</strong> pending promotion recommendation${rows.length===1?'':'s'} waiting for academic-year rollover.`;
+    list.innerHTML=rows.length?`<div class='table-wrap'><table><thead><tr><th>Student</th><th>Student ID</th><th>Current Class</th><th>Promoted To</th><th>Academic Year</th><th>Term</th><th>Action</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${esc(p.studentName||'')}</td><td>${esc(p.studentId||'')}</td><td>${esc(p.currentClass||p.previousClass||'')}</td><td><strong>${esc(p.promotedTo||'')}</strong></td><td>${esc(p.academicYear||'')}</td><td>${esc(p.term||'')}</td><td><button type='button' class='danger afisap-cancel-promotion' data-sid='${esc(p.studentId||'')}'>Cancel</button></td></tr>`).join('')}</tbody></table></div>`:`<div class='empty'>No pending teacher promotion recommendations for the current Academic Year / Term 3.</div>`;
+    list.querySelectorAll('.afisap-cancel-promotion').forEach(btn=>btn.addEventListener('click',async()=>{
+      const sid=String(btn.dataset.sid||'').trim();if(!sid)return;
+      if(!confirm('Cancel this pending promotion recommendation? The student will remain in the current class.'))return;
+      btn.disabled=true;btn.textContent='Cancelling...';
+      try{const res=await afisapCloudPost({action:'adminCancelPromotion',studentId:sid});if(!res?.success)throw new Error(res?.error||'Promotion recommendation could not be cancelled.');await afisapLoadPendingPromotions();await afisapSyncStudentsFromCloud();}
+      catch(err){btn.disabled=false;btn.textContent='Cancel';alert('Promotion recommendation was not cancelled.\n\n'+String(err?.message||err));}
+    }));
+  }catch(e){summary.textContent='Pending promotions could not be loaded: '+String(e?.message||e);list.innerHTML='';}
+}
+
+async function afisapApplyAcademicYearRollover(){
+  const newYear=String(document.getElementById('afisapRolloverAcademicYear')?.value||'').trim();
+  if(!/^\d{4}\s*[\/-]\s*\d{4}$/.test(newYear)){alert('Enter the new Academic Year, for example 2027/2028.');return;}
+  const preview=await afisapCloudPost({action:'adminGetPendingPromotions'});
+  if(!preview?.success){alert('Unable to review pending promotions.\n\n'+String(preview?.error||''));return;}
+  const rows=Array.isArray(preview.promotions)?preview.promotions:[];
+  if(!rows.length){alert('There are no pending teacher promotion recommendations to apply.');return;}
+  const byMove={};rows.forEach(p=>{const key=`${p.currentClass||p.previousClass||''} → ${p.promotedTo||''}`;byMove[key]=(byMove[key]||0)+1;});
+  const summary=Object.entries(byMove).map(([move,count])=>`${move}: ${count} student${count===1?'':'s'}`).join('\n');
+  if(!confirm(`Apply the new academic-year rollover to ${rows.length} student${rows.length===1?'':'s'}?\n\nNew Academic Year: ${newYear}\n\n${summary}\n\nThis will change their active classes together.`))return;
+  afisapShowUploadLoader('Applying Academic Year Rollover','Validating pending promotions before moving students...',15);
+  try{
+    afisapUpdateUploadLoader('Updating student classes in Google Sheets...',55);
+    const r=await afisapCloudPost({action:'adminApplyPromotionRollover',newAcademicYear:newYear});
+    if(!r?.success)throw new Error(r?.error||'Academic-year rollover was not completed.');
+    afisapUpdateUploadLoader('Refreshing student and class records...',85);
+    await Promise.all([afisapSyncStudentsFromCloud(),afisapLoadCentralConfig().catch(()=>null)]);
+    if(d.school&&typeof d.school==='object'){d.school.year=newYear;d.school.term='Term 1';}
+    afisapUpdateUploadLoader('Academic-year rollover completed successfully.',100);
+    await new Promise(resolve=>setTimeout(resolve,350));
+    afisapHideUploadLoader();
+    classes();
+    alert(`Academic-year rollover completed successfully.\n\n${r.applied||0} student${Number(r.applied||0)===1?' has':'s have'} moved to the approved destination classes.\nNew Academic Year: ${newYear}\nNew Term: Term 1${r.schoolSetupWarning?'\n\nNote: '+r.schoolSetupWarning:''}`);
+  }catch(e){afisapUpdateUploadLoader('Academic-year rollover could not be completed.',100);setTimeout(()=>afisapHideUploadLoader(),700);alert('Rollover was not completed.\n\n'+String(e?.message||e));}
+}
+
+function afisapRenderPromotionWorkspace(className){
+  const box=document.getElementById('promotionWorkspace'),nextBox=document.getElementById('promotionNext'); if(!box)return;
+  if(!className){box.innerHTML='';if(nextBox)nextBox.textContent='Select a class to view students.';return;}
+  const students=(d.students||[]).filter(s=>String(s.class||'').trim().toLowerCase()===String(className).trim().toLowerCase());
+  if(nextBox)nextBox.innerHTML=`<strong>${students.length}</strong> active student${students.length===1?'':'s'} in ${esc(className)}`;
+  box.innerHTML=`<div class='afisap-promotion-list'>${students.map(s=>`<div class='afisap-promotion-student'><span><b>${esc(afisapPromotionStudentName(s))}</b><small>${esc(s.sid||'')} · Current Class: ${esc(className)}</small></span><em>${s._afisapPromotionStatus==='pending'?`Pending promotion to ${esc(s._afisapPromotedTo||'')}`:'Active class record'}</em><button type='button' class='secondary afisap-individual-class' data-sid='${esc(s.sid||'')}' data-current='${esc(className)}'>Change Class</button></div>`).join('')||`<div class='empty'>No students are currently registered in ${esc(className)}.</div>`}</div>`;
+  box.querySelectorAll('.afisap-individual-class').forEach(b=>b.onclick=()=>afisapOpenIndividualClassChange(b.dataset.sid,b.dataset.current));
+}
+
+async function afisapPromotionUpdateStudentClass(student,newClass){
+  const sid=String(student&&student.sid||'').trim();
+  if(!sid) return {success:false,error:'Student ID is required for promotion.'};
+  return afisapCloudPost({
+    action:'update',
+    sheet:'Students',
+    idField:'Student ID',
+    idValue:sid,
+    data:{
+      'Class':String(newClass||'').trim(),
+      'Academic Year':String(d.school&&d.school.year||'').trim(),
+      'Last Updated':new Date().toISOString()
+    }
+  });
+}
+
+function afisapOpenIndividualClassChange(sid,currentClass){
+  const student=(d.students||[]).find(s=>String(s.sid||'')===String(sid));
+  if(!student)return;
+  const names=afisapPromotionClassNames();
+  modal('Change Student Class',`<form id='individualClassForm' class='form'><div class='wide'><b>${esc(afisapPromotionStudentName(student))}</b><br><small>Student ID: ${esc(student.sid)} · Current Class: ${esc(currentClass)}</small></div><label class='wide'>New Class<select name='newClass' required>${names.map(n=>`<option value='${esc(n)}' ${n===currentClass?'selected':''}>${esc(n)}</option>`).join('')}</select></label><div class='wide'><button class='primary' type='submit'>Save</button></div></form>`);
+  document.getElementById('individualClassForm').onsubmit=async e=>{
+    e.preventDefault();
+    const f=new FormData(e.currentTarget);
+    const newClass=String(f.get('newClass')||'');
+    if(!newClass||newClass===currentClass){
+      document.getElementById('modal').classList.remove('show');
+      return;
+    }
+    const r=await afisapPromotionUpdateStudentClass(student,newClass);
+    if(!r||r.success!==true){
+      alert('Class change failed: '+(r&&r.error||'Google Sheets synchronization failed.'));
+      return;
+    }
+    student._afisapPreviousClass=String(currentClass||'').trim();
+    student._afisapPromotedTo=String(newClass||'').trim();
+    student._afisapPromotionAt=new Date().toISOString();
+    student.class=newClass;
+    student.rollNo="";
+    student.noOnRoll="";
+    persist();
+    document.getElementById('modal').classList.remove('show');
+    classes();
+    alert('Student class updated successfully in Google Sheets.');
+  };
+}
+
 
 
 
@@ -2115,6 +2673,49 @@ function getStudentPresentDates(studentId){
     .map(r=>String(r.date)))].sort();
 }
 
+function afisapAttendanceReportOverride(student,year,term){
+  const ids=new Set([student?.id,student?.sid,student?.studentId,student?.["Student ID"]].filter(Boolean).map(v=>String(v).trim()));
+  let found=null;
+  Object.entries(d.attendance||{}).forEach(([key,r])=>{
+    if(!r)return;const rid=String(r.studentSid||r.studentId||"").trim();if(!ids.has(rid))return;
+    const raw=String(r.status||"").trim(),m=raw.match(/^REPORT_DAYS:(\d+)\|([^|]*)\|(.+)$/i);if(!m)return;
+    if(String(m[2]||"").trim()===String(year||"").trim()&&afisapNormalizeReportTerm(m[3])===afisapNormalizeReportTerm(term))found=Number(m[1]);
+  });
+  return Number.isInteger(found)&&found>=0?found:null;
+}
+function afisapAttendanceOutOfOverride(student,year,term){
+  const ids=new Set([student?.id,student?.sid,student?.studentId,student?.["Student ID"]].filter(Boolean).map(v=>String(v).trim()));
+  let found=null;
+  Object.entries(d.attendance||{}).forEach(([key,r])=>{
+    if(!r)return;const rid=String(r.studentSid||r.studentId||"").trim();if(!ids.has(rid))return;
+    const raw=String(r.status||"").trim(),m=raw.match(/^OUT_OF_DAYS:(\d+)\|([^|]*)\|(.+)$/i);if(!m)return;
+    if(String(m[2]||"").trim()===String(year||"").trim()&&afisapNormalizeReportTerm(m[3])===afisapNormalizeReportTerm(term))found=Number(m[1]);
+  });
+  return Number.isInteger(found)&&found>=0?found:null;
+}
+async function afisapSaveAttendanceReportOverride(student,year,term,days){
+  const sid=String(student?.sid||student?.studentId||student?.["Student ID"]||student?.id||"").trim();
+  if(!sid)throw new Error("Student ID is required.");
+  const id=["REPORT_DAYS",sid,String(year||"").trim(),afisapNormalizeReportTerm(term)].join("|");
+  const marker=`REPORT_DAYS:${days}|${String(year||"").trim()}|${afisapNormalizeReportTerm(term)}`,now=new Date().toISOString();
+  const data={"Attendance ID":id,"Student ID":sid,"Student Name":student.name||[student.firstName,student.middleName,student.surname].filter(Boolean).join(" "),"Class":student.class||"","Date":"","Attendance Date":"","Present":marker,"Status":marker,"Academic Year":String(year||"").trim(),"Term":afisapNormalizeReportTerm(term),"Recorded By":"Administrator","Date Created":now,"Last Updated":now};
+  let r=await afisapCloudPost({action:"update",sheet:"Student Attendance",idField:"Attendance ID",idValue:id,data});
+  if(!r||r.success!==true)r=await afisapCloudPost({action:"create",sheet:"Student Attendance",data});
+  if(!r||r.success!==true)throw new Error(r?.error||"Unable to save Report Days.");
+  d.attendance=d.attendance||{};
+  d.attendance[id]={
+    attendanceId:id,
+    studentId:String(student?.id||sid),
+    studentSid:sid,
+    date:"",
+    present:false,
+    status:marker,
+    academicYear:String(year||"").trim(),
+    term:afisapNormalizeReportTerm(term)
+  };
+  persist();
+  return r;
+}
 function attendance(){
   if(!d.attendance || typeof d.attendance!=="object" || Array.isArray(d.attendance)) d.attendance={};
   const students=Array.isArray(d.students)?d.students:[];
@@ -2178,9 +2779,17 @@ function attendance(){
       </div>
 
       <div class="panel" style="margin-top:16px">
-        <div class="panel-title">
-          <h3>Mark Attendance</h3>
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <h3>Mark Attendance</h3>
+            <span>Select a class and date. You can mark the whole class PRESENT, then remove/uncheck students who did not come.</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="markAllPresent" class="secondary" type="button">✓ MARK ALL PRESENT</button>
+            <button id="clearAllPresent" class="secondary" type="button">CLEAR ALL</button>
+          </div>
         </div>
+        <div id="attendanceBulkSummary" class="report-help-text" style="margin:10px 0 12px"></div>
         <div id="attendanceStudents"></div>
         <button id="saveAttendance" class="primary" type="button" style="margin-top:16px">
           Save Attendance
@@ -2210,7 +2819,8 @@ function attendance(){
                 <th>Student ID</th>
                 <th>Name</th>
                 <th>Class</th>
-                <th>Attendance</th>
+                <th>Recorded Days</th>
+                <th>Report Days</th>
                 <th>Present Dates</th>
                 <th>Gender</th>
                 <th>Guardian</th>
@@ -2230,6 +2840,21 @@ function attendance(){
     $("#attendanceDate").addEventListener("change",renderStudentsForMarking);
     $("#saveAttendance").addEventListener("click",saveAttendance);
     $("#printStudentAttendance").addEventListener("click",printStudentAttendance);
+    $("#markAllPresent").addEventListener("click",()=>setAllAttendanceState(true));
+    $("#clearAllPresent").addEventListener("click",()=>setAllAttendanceState(false));
+  }
+
+  function updateAttendanceSummary(){
+    const total=document.querySelectorAll(".attendance-present-check").length;
+    const present=document.querySelectorAll(".attendance-present-check:checked").length;
+    const absent=total-present;
+    const box=$("#attendanceBulkSummary");
+    if(box) box.innerHTML=`<b>${present}</b> Present &nbsp; | &nbsp; <b>${absent}</b> Absent &nbsp; | &nbsp; <b>${total}</b> Students in selected class`;
+  }
+
+  function setAllAttendanceState(present){
+    document.querySelectorAll(".attendance-present-check").forEach(cb=>{ cb.checked=present; });
+    updateAttendanceSummary();
   }
 
   function renderStudentsForMarking(){
@@ -2240,41 +2865,46 @@ function attendance(){
 
     if(!list.length){
       box.innerHTML='<div class="empty">No students found.</div>';
+      updateAttendanceSummary();
       return;
     }
 
     box.innerHTML=list.map(s=>{
       const previous=allRecords(s.id).find(r=>String(r.date)===String(date));
-      let state=null;
-      if(previous) state=isPresent(previous);
+      const state=previous ? isPresent(previous) : true;
       const nm=nameOf(s);
 
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px 0;border-bottom:1px solid #eee">
-          <div style="display:flex;align-items:center;gap:12px">
+        <div class="attendance-student-row" style="display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #eee">
+          <label style="display:flex;align-items:center;gap:12px;flex:1;cursor:pointer">
+            <input class="attendance-present-check" type="checkbox"
+                   data-student-id="${esc(String(s.id))}"
+                   ${state===true?"checked":""}
+                   aria-label="Mark ${esc(nm)} present">
             ${
               s.photo
               ? `<img src="${s.photo}" alt="${esc(nm)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover">`
               : `<div style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center">👤</div>`
             }
-            <div>
+            <span>
               <strong>${esc(nm)}</strong>
-              <div>${esc(s.id||"")} · ${esc(s.class||"")}</div>
-            </div>
-          </div>
-
-          <div>
-            <strong>Did he/she come to school?</strong>
-            <label style="margin-left:14px">
-              <input type="radio" name="attendance_${esc(String(s.id))}" value="YES" ${state===true?"checked":""}> YES
-            </label>
-            <label style="margin-left:10px">
-              <input type="radio" name="attendance_${esc(String(s.id))}" value="NO" ${state===false?"checked":""}> NO
-            </label>
-          </div>
+              <small style="display:block">${esc(s.id||"")} · ${esc(s.class||"")}</small>
+            </span>
+          </label>
+          <span class="attendance-status-label">${state===true?"PRESENT":"ABSENT"}</span>
         </div>
       `;
     }).join("");
+
+    document.querySelectorAll(".attendance-present-check").forEach(cb=>{
+      cb.addEventListener("change",e=>{
+        const row=e.target.closest(".attendance-student-row");
+        const label=row?.querySelector(".attendance-status-label");
+        if(label) label.textContent=e.target.checked?"PRESENT":"ABSENT";
+        updateAttendanceSummary();
+      });
+    });
+    updateAttendanceSummary();
   }
 
   async function saveAttendance(){
@@ -2288,33 +2918,20 @@ function attendance(){
 
     const list=students.filter(s=>!cls || s.class===cls);
 
-    for(const s of list){
-      const chosen=document.querySelector(`input[name="attendance_${CSS.escape(String(s.id))}"]:checked`);
-      if(!chosen){
-        alert("Please mark YES or NO for every student before saving.");
-        return;
-      }
-    }
-
-    if(!d.attendance || typeof d.attendance!=="object" || Array.isArray(d.attendance)){
-      d.attendance={};
-    }
-
     const attendanceRecords = list.map(s=>{
-      const chosen=document.querySelector(`input[name="attendance_${CSS.escape(String(s.id))}"]:checked`);
+      const checkbox=document.querySelector(`.attendance-present-check[data-student-id="${CSS.escape(String(s.id))}"]`);
       const studentId=String(s.id||"").trim();
-      const present=chosen.value==="YES";
+      const cloudStudentId=String(s.sid||s.studentId||s["Student ID"]||s.id||"").trim();
+      const present=!!checkbox?.checked;
       const key=studentId+"_"+String(date);
+      const cloudKey=cloudStudentId+"_"+String(date);
 
-      d.attendance[key]={
-        studentId:studentId,
-        date:String(date),
-        present:present
-      };
-
+      // Google Sheets must use the student's persistent school Student ID,
+      // not the browser-only local object ID. This lets Parent Portal match
+      // the same student across refreshes, browsers and devices.
       return {
-        "Attendance ID": key,
-        "Student ID": studentId,
+        "Attendance ID": cloudKey,
+        "Student ID": cloudStudentId,
         "Date": String(date),
         "Present": present ? "YES" : "NO",
         "Class": String(s.class||"").trim(),
@@ -2327,35 +2944,44 @@ function attendance(){
       };
     });
 
-    if(typeof save==="function") save();
-
+    afisapShowUploadLoader("Saving Student Attendance","Saving attendance to Google Sheets...",15);
     try{
-      const cloudResults = await Promise.all(
-        attendanceRecords.map(record =>
-          afisapCloudPost({
-            action:"create",
-            sheet:"Student Attendance",
-            data:record
-          })
-        )
-      );
+      afisapUpdateUploadLoader("Updating the official Student Attendance sheet...",55);
+      const result=await afisapCloudPost({
+        action:"saveStudentAttendanceBatch",
+        records:attendanceRecords
+      });
+      if(!result||result.success!==true)throw new Error(String(result?.error||"Google Sheets did not confirm the attendance save."));
 
-      const failed = cloudResults.filter(r=>!r || r.success!==true);
-      if(failed.length){
-        console.error("Student attendance cloud sync failed:",failed);
-        alert("Attendance was saved locally, but one or more records could not be saved to Google Sheets. Please check the connection and try again.");
-        renderRecords();
-        return;
-      }
+      attendanceRecords.forEach(record=>{
+        const cloudId=String(record["Attendance ID"]||"").trim();
+        const student=students.find(s=>String(s.sid||s.studentId||s["Student ID"]||s.id||"").trim()===String(record["Student ID"]||"").trim());
+        d.attendance[cloudId]={
+          attendanceId:cloudId,
+          studentId:String(student?.id||record["Student ID"]||""),
+          studentSid:String(record["Student ID"]||""),
+          date:String(record["Date"]||""),
+          present:String(record["Present"]||"").toUpperCase()==="YES",
+          status:String(record["Present"]||""),
+          academicYear:String(d.school?.year||"").trim(),
+          term:String(d.school?.term||"").trim()
+        };
+      });
+      persist();
+      renderRecords();
+      const presentCount=attendanceRecords.filter(r=>r["Present"]==="YES").length;
+      const absentCount=attendanceRecords.length-presentCount;
+      afisapUpdateUploadLoader("Attendance saved successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,220));
+      afisapHideUploadLoader();
+      alert(`Attendance saved successfully to Google Sheets.\n\nPresent: ${presentCount}\nAbsent: ${absentCount}`);
     }catch(error){
       console.error("Student attendance cloud sync error:",error);
-      alert("Attendance was saved locally, but Google Sheets could not be reached. Please check the connection and try again.");
-      renderRecords();
+      afisapUpdateUploadLoader("Attendance could not be saved.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert("Attendance was not saved because Google Sheets could not confirm the records.\n\nReason: "+String(error?.message||error||"Unknown error"));
       return;
     }
-
-    renderRecords();
-    alert("Attendance saved successfully to Google Sheets.");
   }
 
   function renderRecords(){
@@ -2379,6 +3005,7 @@ function attendance(){
           <td><strong>${esc(nm)}</strong></td>
           <td>${esc(s.class||"")}</td>
           <td><strong>${dates.length} day${dates.length===1?"":"s"}</strong></td>
+          <td><strong>${afisapAttendanceReportOverride(s,d.school?.year,d.school?.term)??dates.length} day${(afisapAttendanceReportOverride(s,d.school?.year,d.school?.term)??dates.length)===1?"":"s"}</strong><br><button class="secondary admin-edit-report-days" data-student-id="${esc(String(s.id||""))}" type="button">Edit Attendance Days</button></td>
           <td>${dates.length ? dates.map(x=>typeof formatDate==="function"?formatDate(x):x).join(", ") : "—"}</td>
           <td>${esc(s.gender||"")}</td>
           <td>${esc(guardianOf(s))}</td>
@@ -2386,6 +3013,26 @@ function attendance(){
         </tr>
       `;
     }).join("");
+    document.querySelectorAll(".admin-edit-report-days").forEach(btn=>btn.addEventListener("click",async()=>{
+      const student=students.find(s=>String(s.id)===String(btn.dataset.studentId));if(!student)return;
+      const recorded=presentDates(student.id).length,current=afisapAttendanceReportOverride(student,d.school?.year,d.school?.term)??recorded;
+      const entered=prompt(`Recorded Days: ${recorded}\n\nReport Days (whole number 0 or greater):`,String(current));if(entered===null)return;
+      if(!/^\d+$/.test(String(entered).trim()))return alert("Report Days must be a non-negative whole number (0, 1, 2, 3...).");
+      afisapShowUploadLoader("Updating Attendance Days","Saving Report Attendance Days to Google Sheets...",15);
+      try{
+        afisapUpdateUploadLoader("Updating the official Student Attendance sheet...",60);
+        await afisapSaveAttendanceReportOverride(student,d.school?.year,d.school?.term,Number(entered));
+        renderRecords();
+        afisapUpdateUploadLoader("Attendance Days updated successfully.",100);
+        await new Promise(resolve=>setTimeout(resolve,220));
+        afisapHideUploadLoader();
+        alert("Report Attendance Days saved to Google Sheets.");
+      }catch(e){
+        afisapUpdateUploadLoader("Attendance Days could not be updated.",100);
+        setTimeout(()=>afisapHideUploadLoader(),650);
+        alert(e.message||e);
+      }
+    }));
   }
 
   function printStudentAttendance(){
@@ -2718,8 +3365,97 @@ ${reportHTML}
   render();
 }
 
+
+/* ============================================================
+ * RESULTS & MARKS — STABLE STUDENT PHOTO BRIDGE
+ * ============================================================
+ * Results must use the persistent Student ID for selection/photo identity.
+ * d.students is periodically rebuilt from Google Sheets every 30 seconds and
+ * its browser-only local `id` can change. A valid photo is cached by Student ID
+ * so a temporary/incomplete refresh can never replace it with the camera icon.
+ */
+const afisapResultsPhotoCache=new Map();
+
+function afisapResultsStudentPersistentId(student){
+  return String(
+    student&&(
+      student.sid||student.studentId||student['Student ID']||
+      student.admissionNumber||student['Admission Number']||student.id||''
+    )
+  ).trim();
+}
+
+function afisapResultsFindStudent(value){
+  const wanted=String(value||'').trim();
+  if(!wanted) return null;
+  return (d.students||[]).find(student=>{
+    const ids=[
+      student&&student.sid,
+      student&&student.studentId,
+      student&&student['Student ID'],
+      student&&student.admissionNumber,
+      student&&student['Admission Number'],
+      student&&student.id
+    ].filter(v=>v!==undefined&&v!==null&&String(v).trim()!=='').map(v=>String(v).trim());
+    return ids.includes(wanted);
+  })||null;
+}
+
+function afisapResultsPhotoSource(student){
+  if(!student) return '';
+  const studentId=afisapResultsStudentPersistentId(student);
+
+  // Use the same permanent-photo normalization already used by Student
+  // Management/reporting. Prefer a confirmed current source.
+  const current=typeof afisapPermanentPhotoRenderSrc==='function'
+    ? String(afisapPermanentPhotoRenderSrc(student)||'').trim()
+    : String(student.photo||student.passportPhotoUrl||'').trim();
+
+  if(current && /^(?:data:image\/|blob:|https?:\/\/)/i.test(current)){
+    if(studentId) afisapResultsPhotoCache.set(studentId,current);
+    return current;
+  }
+
+  // A temporary empty photo value from a 30-second cloud refresh must not
+  // erase a photograph that was already confirmed for this Student ID.
+  return studentId && afisapResultsPhotoCache.has(studentId)
+    ? afisapResultsPhotoCache.get(studentId)
+    : '';
+}
+
+async function afisapResultsHydrateSelectedPhoto(studentId){
+  const wanted=String(studentId||'').trim();
+  const student=afisapResultsFindStudent(wanted);
+  if(!student) return;
+
+  // If the record has a Drive File ID, retrieve through the existing Drive
+  // bridge. No upload and no duplicate photo is created.
+  try{
+    if(typeof afisapHydratePermanentPhoto==='function'){
+      await afisapHydratePermanentPhoto(student);
+    }
+  }catch(error){
+    console.warn('AFISAP Results photo hydration unavailable:',wanted,error);
+  }
+
+  const src=afisapResultsPhotoSource(student);
+  if(!src) return;
+
+  // Update only if Results is still showing the same persistent Student ID.
+  const select=document.getElementById('rs');
+  const box=document.getElementById('resultStudentPhoto');
+  if(!select||!box||String(select.value)!==wanted) return;
+  const name=student.name||[student.firstName,student.middleName,student.surname].filter(Boolean).join(' ');
+  box.innerHTML=`<img src='${src.replace(/'/g,"&#39;")}' alt='${esc(name)}'>`;
+}
+
 function results(){
-  const studentOptions=d.students.map(s=>`<option value='${s.id}'>${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))} — ${esc(s.class)}</option>`).join('');
+  const previouslySelected=String(window.afisapResultsSelectedStudentId||'').trim();
+  const studentOptions=d.students.map(s=>{
+    const stableId=afisapResultsStudentPersistentId(s);
+    const selected=previouslySelected && stableId===previouslySelected ? ' selected' : '';
+    return `<option value='${esc(stableId)}'${selected}>${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))} — ${esc(s.class)}</option>`;
+  }).join('');
   const subjectOptions=d.subjects.map(s=>`<option value='${esc(s)}'>${esc(s)}</option>`).join('');
 
   $('#app').innerHTML=`
@@ -2755,7 +3491,7 @@ function results(){
         </label>
 
         <label>Position
-          <input id='pos' type='text' placeholder='e.g. 1st, 2nd, 3rd'>
+          <input id='pos' type='text' readonly value='' placeholder='Calculated automatically'>
         </label>
 
         <label>Remarks
@@ -2770,10 +3506,12 @@ function results(){
       <table>
         <tr><th>Photo</th><th>Student</th><th>Subject</th><th>Class</th><th>Exam</th><th>Total</th><th>Position</th><th>Remarks</th><th></th></tr>
         ${d.results.map(r=>{
-          let s=d.students.find(x=>String(x.id)===String(r.studentId));
+          const resultStudentId=String(r.studentSid||r['Student ID']||r.studentId||'').trim();
+          let s=afisapResultsFindStudent(resultStudentId);
+          const src=afisapResultsPhotoSource(s);
           return `<tr>
-            <td>${s?.photo?`<img class='result-thumb' src='${s.photo}' alt='${esc(s?.name||"Student")}'>`:'<span class="result-no-photo">—</span>'}</td>
-            <td>${esc(s?.name || [s?.firstName,s?.middleName,s?.surname].filter(Boolean).join(' '))}</td>
+            <td>${src?`<img class='result-thumb' src='${src.replace(/'/g,"&#39;")}' alt='${esc(s?.name||"Student")}'>`:'<span class="result-no-photo">—</span>'}</td>
+            <td>${esc(s?.name || r.studentName || [s?.firstName,s?.middleName,s?.surname].filter(Boolean).join(' '))}</td>
             <td>${esc(r.subject)}</td><td>${r.cs}</td><td>${r.es}</td>
             <td><b>${r.cs+r.es}</b></td>
             <td>${esc(r.position||'')}</td>
@@ -2784,18 +3522,51 @@ function results(){
       </table>
     </div>`;
 
+  // If the previous Student ID is no longer present, use the current option.
+  if($('#rs') && !$('#rs').value && $('#rs').options.length){
+    $('#rs').selectedIndex=0;
+  }
+
   function refreshResultStudent(){
-    const s=d.students.find(x=>String(x.id)===String($('#rs').value));
+    const selectedId=String($('#rs')?.value||'').trim();
+    window.afisapResultsSelectedStudentId=selectedId;
+    const s=afisapResultsFindStudent(selectedId);
     const box=$('#resultStudentPhoto'), meta=$('#resultStudentMeta');
     if(!s){
       box.innerHTML='<span>📷</span>';
       meta.textContent='Choose a student to display the passport photo and details.';
       return;
     }
-    box.innerHTML=s.photo
-      ? `<img src='${s.photo}' alt='${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))}'>`
-      : '<span>📷</span>';
-    meta.innerHTML=`<strong>${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))}</strong><span>${esc(s.sid||s.studentId||'')} • ${esc(s.class||'')} • ${esc(s.gender||'')}</span>`;
+
+    const src=afisapResultsPhotoSource(s);
+    if(src){
+      box.innerHTML=`<img src='${src.replace(/'/g,"&#39;")}' alt='${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))}'>`;
+    }else{
+      // Do not decide "no photo" until the existing Drive reference has had
+      // a chance to resolve. The camera icon is only the final no-photo state.
+      box.innerHTML='<span class="result-photo-loading" aria-label="Loading student photograph">…</span>';
+    }
+
+    const roster=afisapClassRosterInfo(s);
+    const currentTerm=String((d.settings&&d.settings.term)||"").trim();
+    const currentYear=String((d.settings&&d.settings.academicYear)||d.school?.year||"").trim();
+    const academicPosition=afisapAcademicPositionInfo(s,currentTerm,currentYear);
+    meta.innerHTML=`<strong>${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))}</strong><span>${esc(s.sid||s.studentId||'')} • ${esc(s.class||'')} • ${esc(s.gender||'')}</span><span><b>Roll No.:</b> ${esc(roster.rollNo||'—')} &nbsp; • &nbsp; <b>No. on Roll:</b> ${esc(roster.noOnRoll)} &nbsp; • &nbsp; <b>Position:</b> ${esc(academicPosition.ordinal||'—')}</span>`;
+    const pos=document.getElementById("pos");
+    if(pos) pos.value=academicPosition.ordinal||"";
+
+    // Resolve from the existing permanent Drive reference asynchronously.
+    // If it fails and no cached/confirmed photo exists, only then show camera.
+    afisapResultsHydrateSelectedPhoto(selectedId).then(()=>{
+      const current=afisapResultsFindStudent(selectedId);
+      const resolved=afisapResultsPhotoSource(current);
+      const currentBox=document.getElementById('resultStudentPhoto');
+      const currentSelect=document.getElementById('rs');
+      if(!currentBox||!currentSelect||String(currentSelect.value)!==selectedId) return;
+      if(!resolved){
+        currentBox.innerHTML='<span>📷</span>';
+      }
+    });
   }
 
   $('#rs')?.addEventListener('change',refreshResultStudent);
@@ -2808,127 +3579,318 @@ function results(){
 
 window.addResult=async()=>{
   let cs=+$('#cs').value,es=+$('#es').value;
-  const localStudent=d.students.find(s=>String(s.id)===String($('#rs').value));
+  const localStudent=afisapResultsFindStudent(String($('#rs').value||'').trim());
   if(!localStudent)return alert('Please select a student.');
   if(!Number.isFinite(cs)||!Number.isFinite(es)||cs<0||cs>50||es<0||es>50)return alert('Scores must be between 0 and 50.');
 
   let subject=$('#sub').value;
-  let afisapNewSubjectAdded=false;
   if(subject==='__OTHER__'){
     subject=String($('#otherSubject').value||'').trim();
     if(!subject)return alert('Please type the subject name.');
-    if(!d.subjects.includes(subject)){
-      d.subjects.push(subject);
-      afisapNewSubjectAdded=true;
-    }
   }
 
-  const position=String($('#pos').value||'').trim();
   const remarks=String($('#rem').value||'').trim();
+  // Results & Marks uses the central school settings. Keep d.school as the
+  // authoritative fallback because this build does not always have d.settings.
+  const academicYear=String((d.settings&&d.settings.academicYear)||d.school?.year||"").trim();
+  const term=String((d.settings&&d.settings.term)||d.school?.term||"").trim();
+  if(!academicYear||!term){
+    alert("Academic Year and Term are required. Please set them in School Setup before saving results.");
+    return;
+  }
   const resultId=String(Date.now());
-  const total=cs+es;
-  const now=new Date().toISOString();
+  const total=cs+es,now=new Date().toISOString();
 
-  const localResult={
-    id:resultId,
-    studentId:String(localStudent.id),
-    subject,
-    cs,
-    es,
-    position,
-    remarks
-  };
-
-  // Save locally first so the result is not lost if the cloud request fails.
-  d.results.push(localResult);
-  save();
-  if(afisapNewSubjectAdded){
-    afisapSaveCentralConfig().catch(error=>{
-      console.warn("AFISAP subject central-config save unavailable:",error);
-    });
+  // Persist a new custom subject centrally before using it in a Result record.
+  if(!d.subjects.includes(subject)){
+    const nextSubjects=[...(d.subjects||[]),subject];
+    const cfg=await afisapSecurePost({
+      action:"configSet",
+      config:JSON.stringify({school:d.school||{},subjects:nextSubjects})
+    },{includeAuth:true}).catch(e=>({success:false,error:e.message}));
+    if(!cfg?.success){
+      alert("The custom subject was not saved centrally, so the result was not created."+(cfg?.error?"\n\nReason: "+cfg.error:""));
+      return;
+    }
+    d.subjects=nextSubjects;
   }
 
-  // Resolve the name from local data first. If the local record has no
-  // name field, look the student up in Google Sheets by Student ID.
   const resolvedStudentName=await afisapResolveStudentName(localStudent);
-
   if(!resolvedStudentName){
-    const idx=d.results.findIndex(r=>String(r.id)===resultId);
-    if(idx!==-1)d.results.splice(idx,1);
-    save();
-    alert("The student's name could not be resolved. The result was not sent to Google Sheets.");
-    render();
+    alert("The student's name could not be resolved. Nothing was saved.");
     return;
   }
 
+  const className=String(localStudent.class||localStudent.className||"");
   const cloudRecord={
     "Result ID":resultId,
     "Student ID":String(localStudent.sid||localStudent.studentId||localStudent.id||""),
     "Student Name":resolvedStudentName,
-    "Subject":subject,
-    "Class":String(localStudent.class||localStudent.className||""),
-    "Class Score":cs,
-    "Exam Score":es,
-    "Total Marks":total,
-    "Position":position,
-    "Remarks":remarks,
-    "Academic Year":String((d.settings&&d.settings.academicYear)||""),
-    "Term":String((d.settings&&d.settings.term)||""),
-    "Date Created":now,
-    "Last Updated":now
+    "Subject":subject,"Class":className,
+    "Class Score":cs,"Exam Score":es,"Total Marks":total,"Position":"",
+    "Remarks":remarks,"Academic Year":academicYear,"Term":term,
+    "Date Created":now,"Last Updated":now
   };
 
+  const saveButton=document.querySelector("button[onclick='addResult()']");
   try{
-    const result=await afisapCloudPost({
-      action:"create",
-      sheet:"Results",
-      data:cloudRecord
-    });
+    if(saveButton){
+      saveButton.disabled=true;
+      saveButton.setAttribute("aria-busy","true");
+      saveButton.dataset.originalText=saveButton.textContent;
+      saveButton.innerHTML='<span class="afisap-result-save-spinner" aria-hidden="true"></span> Saving Result...';
+    }
+    afisapShowUploadLoader("Saving Result","Writing the result to Google Sheets...",25);
 
-    if(!result || result.success!==true){
-      console.error("Result cloud sync failed:",result);
-      // Remove only the result just created locally because Google Sheets
-      // did not confirm the cloud save.
-      const idx=d.results.findIndex(r=>String(r.id)===resultId);
-      if(idx!==-1)d.results.splice(idx,1);
-      save();
-      alert("Result was not saved to Google Sheets."+(result&&result.error?"\n\nReason: "+result.error:""));
-      render();
-      return;
+    afisapUpdateUploadLoader("Saving and calculating positions...",55);
+    // One server request now performs both the official Results write and
+    // academic-position synchronization. This replaces the old create +
+    // recalculate + full-school-sync sequence.
+    const result=await afisapCloudPost({action:"saveResult",data:cloudRecord});
+    if(!result?.success){
+      if(result?.saved){
+        throw new Error("The result was saved, but academic position synchronization was incomplete. "+String(result?.error||"Position recalculation failed."));
+      }
+      throw new Error("Result was not saved to Google Sheets."+(result?.error?" Reason: "+result.error:""));
     }
 
-    alert('Result saved successfully to Google Sheets.');
+    afisapUpdateUploadLoader("Updating the screen...",90);
+
+    // Reconcile only the local Results collection from the authoritative
+    // server response. Avoid the old 10-sheet full synchronization here.
+    const savedRecord=result.record||cloudRecord;
+    const savedId=String(savedRecord["Result ID"]||resultId);
+    const localRecord={
+      id:savedId,
+      studentId:String(savedRecord["Student ID"]||cloudRecord["Student ID"]),
+      studentName:String(savedRecord["Student Name"]||cloudRecord["Student Name"]),
+      subject:String(savedRecord["Subject"]||subject),
+      className:String(savedRecord["Class"]||className),
+      cs:Number(savedRecord["Class Score"]??cs),
+      es:Number(savedRecord["Exam Score"]??es),
+      totalMarks:Number(savedRecord["Total Marks"]??total),
+      position:"",
+      remarks:String(savedRecord["Remarks"]??remarks),
+      academicYear:String(savedRecord["Academic Year"]??academicYear),
+      term:String(savedRecord["Term"]??term)
+    };
+    const existingIndex=(d.results||[]).findIndex(r=>String(r.id||r.resultId||r["Result ID"]||"")===savedId);
+    if(existingIndex>=0)d.results[existingIndex]=Object.assign({},d.results[existingIndex],localRecord);
+    else d.results.push(localRecord);
+
+    // The optimized backend returns the authoritative positions for the
+    // affected class/period. Apply them locally without another cloud read.
+    if(result.positions&&typeof result.positions==="object"){
+      const positionMap=result.positions;
+      (d.results||[]).forEach(r=>{
+        const rid=String(r.studentId||r["Student ID"]||"").trim();
+        const rclass=String(r.className||r.class||r["Class"]||"").trim().toLowerCase();
+        const ry=String(r.academicYear||r["Academic Year"]||"").trim();
+        const rt=String(r.term||r["Term"]||"").trim();
+        if(rclass===className.toLowerCase()&&(!ry||ry===academicYear)&&(!rt||rt===term)&&positionMap[rid]!==undefined){
+          r.position=positionMap[rid]||"";
+        }
+      });
+    }
+    persist();
+    afisapUpdateUploadLoader("Result saved successfully.",100);
+    await new Promise(resolve=>setTimeout(resolve,250));
+    afisapHideUploadLoader();
     render();
   }catch(error){
-    console.error("Result cloud sync error:",error);
-    const idx=d.results.findIndex(r=>String(r.id)===resultId);
-    if(idx!==-1)d.results.splice(idx,1);
-    save();
-    alert("Result was not saved to Google Sheets.\n\nReason: "+(error&&error.message?error.message:"Cloud database request failed."));
+    afisapHideUploadLoader();
+    alert(String(error?.message||error));
     render();
+  }finally{
+    if(saveButton){
+      saveButton.disabled=false;
+      saveButton.removeAttribute("aria-busy");
+      saveButton.textContent=saveButton.dataset.originalText||"Save Result";
+      delete saveButton.dataset.originalText;
+    }
   }
+}
+
+function afisapStudentKey(s){
+  if(!s) return "";
+  const candidates=[s.id,s.sid,s.studentId,s["Student ID"],s.indexNumber,s["Index Number"]];
+  for(const v of candidates){
+    if(v!==undefined && v!==null && String(v).trim()!=="") return String(v).trim();
+  }
+  // Last-resort deterministic key for legacy records that have no ID field.
+  const name=String(s.name||[s.firstName,s.middleName,s.surname,s.otherName].filter(Boolean).join(" ")||"").trim().toLowerCase();
+  const cls=String(s.class||s.className||"").trim().toLowerCase();
+  return name+"|"+cls;
+}
+
+
+function afisapOrdinalPosition(value){
+  const n=Number(value);
+  if(!Number.isFinite(n) || n<=0) return "";
+  const mod100=n%100;
+  const suffix=(mod100>=11 && mod100<=13)?"th":({1:"st",2:"nd",3:"rd"}[n%10]||"th");
+  return String(n)+suffix;
+}
+
+function afisapResultTotalValue(r){
+  if(!r) return 0;
+  const explicit=(r.totalMarks!==undefined && r.totalMarks!==null && String(r.totalMarks).trim()!=="")
+    ? Number(r.totalMarks) : NaN;
+  if(Number.isFinite(explicit)) return explicit;
+  return (Number(r.cs??r.classScore??r["Class Score"]??0)||0)
+       + (Number(r.es??r.examScore??r["Exam Score"]??0)||0);
+}
+
+function afisapResultMatchesAcademicPeriod(r,term,year){
+  const rt=String(r?.term||r?.Term||"").trim();
+  const ry=String(r?.academicYear||r?.["Academic Year"]||r?.year||"").trim();
+  const wantedTerm=String(term||"").trim();
+  const wantedYear=String(year||"").trim();
+
+  // Preserve compatibility with older AFISAP result rows that pre-date
+  // period fields, while keeping all newly saved results period-specific.
+  return (!rt || !wantedTerm || rt===wantedTerm) &&
+         (!ry || !wantedYear || ry===wantedYear);
+}
+
+function afisapAcademicRankMap(className,term,year){
+  const cls=String(className||"").trim();
+  const students=(d.students||[]).filter(s=>
+    String(s.class||s.className||"").trim()===cls
+  );
+
+  const summaries=students.map(s=>{
+    const key=afisapStudentKey(s);
+    const rs=(d.results||[]).filter(r=>
+      String(r.studentId||"").trim()===key &&
+      afisapResultMatchesAcademicPeriod(r,term,year)
+    );
+    return {
+      key,
+      total:rs.reduce((sum,r)=>sum+afisapResultTotalValue(r),0),
+      hasResults:rs.length>0
+    };
+  }).filter(x=>x.hasResults)
+    .sort((a,b)=>b.total-a.total);
+
+  const map=new Map();
+  let previousTotal=null;
+  let previousRank=0;
+
+  // Competition ranking: 450,450,440 => 1st,1st,3rd.
+  summaries.forEach((x,index)=>{
+    if(previousTotal===null || x.total!==previousTotal) previousRank=index+1;
+    map.set(x.key,{
+      rank:previousRank,
+      ordinal:afisapOrdinalPosition(previousRank),
+      total:x.total
+    });
+    previousTotal=x.total;
+  });
+  return map;
+}
+
+function afisapAcademicPositionInfo(student,term,year){
+  if(!student) return {rank:"",ordinal:"",total:0};
+  const cls=String(student.class||student.className||"").trim();
+  return afisapAcademicRankMap(cls,term,year).get(afisapStudentKey(student))||
+    {rank:"",ordinal:"",total:0};
+}
+
+function afisapApplyAcademicPositionsLocally(className,term,year){
+  const cls=String(className||"").trim();
+  const rankMap=afisapAcademicRankMap(cls,term,year);
+  const studentsByKey=new Map(
+    (d.students||[])
+      .filter(s=>String(s.class||s.className||"").trim()===cls)
+      .map(s=>[afisapStudentKey(s),s])
+  );
+
+  const changed=[];
+  (d.results||[]).forEach(r=>{
+    const key=String(r.studentId||"").trim();
+    if(!studentsByKey.has(key) || !afisapResultMatchesAcademicPeriod(r,term,year)) return;
+    const next=rankMap.get(key)?.ordinal||"";
+    if(String(r.position||"")!==next){
+      r.position=next;
+      changed.push(r);
+    }
+  });
+  return changed;
+}
+
+async function afisapRecalculateAcademicPositions(className,term,year,syncCloud){
+  if(syncCloud){
+    const result=await afisapCloudPost({action:"recalculatePositions",className,academicYear:year,term});
+    await afisapSyncAllFromCloud().catch(()=>{});
+    if(!result?.success)throw new Error(result?.error||"Position recalculation was not completed.");
+    return result;
+  }
+  return afisapApplyAcademicPositionsLocally(className,term,year);
+}
+
+function afisapRecalculateAllAcademicPositionsLocally(){
+  const periods=new Set();
+  (d.results||[]).forEach(r=>{
+    const student=(d.students||[]).find(s=>afisapStudentKey(s)===String(r.studentId||"").trim());
+    if(!student) return;
+    const cls=String(student.class||student.className||"").trim();
+    const term=String(r.term||r.Term||"").trim();
+    const year=String(r.academicYear||r["Academic Year"]||r.year||"").trim();
+    periods.add(JSON.stringify([cls,term,year]));
+  });
+  periods.forEach(item=>{
+    const [cls,term,year]=JSON.parse(item);
+    afisapApplyAcademicPositionsLocally(cls,term,year);
+  });
 }
 
 function reports(){
   const classes=[...new Set((d.students||[]).map(s=>s.class).filter(Boolean))];
   const years=[...new Set((d.results||[]).map(r=>r.academicYear||r.year).filter(Boolean))];
   const selectedYear=years[0]||d.school?.year||'';
+
   $('#app').innerHTML=`
     <div class='panel'>
       <div class='panel-title'>
-        <div><h3>Academic Reports</h3><span>Generate individual student reports or complete class results.</span></div>
+        <div><h3>Academic Reports</h3><span>Generate individual student reports, bulk report cards, or complete class results.</span></div>
       </div>
 
       <div class='report-mode-tabs' role='tablist' aria-label='Academic report type'>
-        <button id='studentReportTab' class='primary' type='button'>Student Report Card</button>
+        <button id='studentReportTab' class='primary' type='button'>Individual Report Card</button>
+        <button id='bulkReportTab' class='secondary' type='button'>Bulk Report Cards</button>
         <button id='classResultsTab' class='secondary' type='button'>Class Results</button>
+      </div>
+
+      <div class='panel' style='margin-top:16px;padding:16px'>
+        <div class='panel-title' style='margin-bottom:10px'>
+          <div><h3 style='margin:0'>Report Card Dates</h3><span>Set these once for each Academic Year and Term. They will appear on every report card for that period.</span></div>
+        </div>
+        <div class='form'>
+          <label>Academic Year
+            <input id='reportDatesYear' value='${esc(selectedYear)}' placeholder='e.g. 2025/2026'>
+          </label>
+          <label>Term
+            <select id='reportDatesTerm'>
+              <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+            </select>
+          </label>
+          <label>Vacation Date
+            <input id='reportVacationDate' type='date'>
+          </label>
+          <label>Opening Date
+            <input id='reportOpeningDate' type='date'>
+          </label>
+        </div>
+        <div id='reportDatesStatus' class='report-help-text' style='margin-top:8px'></div>
+        <button class='primary' id='saveReportCardDates' type='button' style='margin-top:10px'>Save Report Card Dates</button>
       </div>
 
       <div id='studentReportPanel' style='margin-top:16px'>
         <div class='form'>
           <label>Student
             <select id='repStu'>
-              ${(d.students||[]).map(s=>`<option value='${esc(s.id)}'>${esc((s.name||[s.firstName,s.middleName,s.surname,s.otherName].filter(Boolean).join(' ')))} — ${esc(s.class||'')}</option>`).join('')||"<option value=''>No students yet</option>"}
+              ${(d.students||[]).map(s=>`<option value='${esc(afisapStudentKey(s))}'>${esc((s.name||[s.firstName,s.middleName,s.surname,s.otherName].filter(Boolean).join(' ')))} — ${esc(s.class||s.className||'')}</option>`).join('')||"<option value=''>No students yet</option>"}
             </select>
           </label>
           <label>Term
@@ -2936,8 +3898,47 @@ function reports(){
               <option>Term 1</option><option>Term 2</option><option>Term 3</option>
             </select>
           </label>
+          <label>Academic Year
+            <input id='repYear' value='${esc(selectedYear)}' placeholder='e.g. 2026/2027'>
+          </label>
         </div>
         <button class='primary' onclick='makeReport()' style='margin-top:15px'>Preview / Print Report</button>
+      </div>
+
+      <div id='bulkReportPanel' style='display:none;margin-top:16px'>
+        <div class='report-help-text'>
+          Select <b>All Students</b>, an entire class, or individual students. The system generates each student's existing report-card design as a separate page in one combined print document.
+        </div>
+        <div class='form' style='margin-top:12px'>
+          <label>Academic Year
+            <input id='bulkReportYear' value='${esc(selectedYear)}' placeholder='e.g. 2026/2027'>
+          </label>
+          <label>Term
+            <select id='bulkReportTerm'>
+              <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+            </select>
+          </label>
+          <label>Class Filter
+            <select id='bulkReportClass'>
+              <option value=''>All Classes / All Students</option>
+              ${classes.map(c=>`<option value='${esc(c)}'>${esc(c)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+
+        <div class='bulk-report-toolbar' style='margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center'>
+          <button class='secondary' id='bulkSelectAll' type='button'>Select All</button>
+          <button class='secondary' id='bulkClearAll' type='button'>Clear All</button>
+          <span id='bulkReportCount' class='report-help-text' style='margin:0;padding:8px 12px'>0 students selected</span>
+        </div>
+
+        <div id='bulkStudentList' class='bulk-student-list' style='margin-top:12px'></div>
+
+        <div class='bulk-report-actions' style='margin-top:15px;display:flex;gap:10px;flex-wrap:wrap'>
+          <button class='primary' id='bulkPreviewReports' type='button'>Preview Selected Reports</button>
+          <button class='primary' id='bulkPrintReports' type='button'>Print Selected Reports</button>
+          <button class='secondary' id='bulkPrintClassReports' type='button'>Print Entire Selected Class</button>
+        </div>
       </div>
 
       <div id='classResultsPanel' style='display:none;margin-top:16px'>
@@ -2962,20 +3963,229 @@ function reports(){
       </div>
     </div>
     <div id='report' class='report' style='display:none'></div>
+    <div id='bulkReport' class='report bulk-report-document' style='display:none'></div>
     <div id='classResultsReport' class='report' style='display:none'></div>`;
 
-  $('#studentReportTab').addEventListener('click',()=>{
-    $('#studentReportPanel').style.display='block';
-    $('#classResultsPanel').style.display='none';
-    $('#studentReportTab').className='primary';
-    $('#classResultsTab').className='secondary';
+  const setTab=(which)=>{
+    const individual=which==='individual', bulk=which==='bulk';
+    $('#studentReportPanel').style.display=individual?'block':'none';
+    $('#bulkReportPanel').style.display=bulk?'block':'none';
+    $('#classResultsPanel').style.display=(!individual&&!bulk)?'block':'none';
+    $('#studentReportTab').className=individual?'primary':'secondary';
+    $('#bulkReportTab').className=bulk?'primary':'secondary';
+    $('#classResultsTab').className=(!individual&&!bulk)?'primary':'secondary';
+    if(which!=='individual') $('#report').style.display='none';
+    if(which!=='bulk') $('#bulkReport').style.display='none';
+    if(which!=='class') $('#classResultsReport').style.display='none';
+  };
+
+  $('#studentReportTab').addEventListener('click',()=>setTab('individual'));
+  $('#bulkReportTab').addEventListener('click',()=>setTab('bulk'));
+  $('#classResultsTab').addEventListener('click',()=>setTab('class'));
+
+  const refreshReportDateFields=()=>{
+    const year=String($('#reportDatesYear')?.value||'').trim();
+    const term=String($('#reportDatesTerm')?.value||'').trim();
+    const dates=afisapGetReportCardDates(year,term);
+    if($('#reportVacationDate')) $('#reportVacationDate').value=/^\d{4}-\d{2}-\d{2}$/.test(dates.vacationDate)?dates.vacationDate:'';
+    if($('#reportOpeningDate')) $('#reportOpeningDate').value=/^\d{4}-\d{2}-\d{2}$/.test(dates.openingDate)?dates.openingDate:'';
+    const status=$('#reportDatesStatus');
+    if(status){
+      const vacation=afisapFormatReportCardDate(dates.vacationDate)||'Not set';
+      const opening=afisapFormatReportCardDate(dates.openingDate)||'Not set';
+      status.textContent=`Saved for ${year||'—'} / ${afisapNormalizeReportTerm(term)||'—'}: Vacation ${vacation} • Opening ${opening}`;
+    }
+  };
+
+  $('#reportDatesYear')?.addEventListener('change',refreshReportDateFields);
+  $('#reportDatesYear')?.addEventListener('blur',refreshReportDateFields);
+  $('#reportDatesTerm')?.addEventListener('change',refreshReportDateFields);
+
+  $('#saveReportCardDates')?.addEventListener('click',async()=>{
+    const year=String($('#reportDatesYear')?.value||'').trim();
+    const term=afisapNormalizeReportTerm($('#reportDatesTerm')?.value||'');
+    const vacationDate=String($('#reportVacationDate')?.value||'').trim();
+    const openingDate=String($('#reportOpeningDate')?.value||'').trim();
+
+    if(!year){alert('Please enter the Academic Year.');return;}
+    if(!term){alert('Please select the Term.');return;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(vacationDate)){alert('Please select a valid Vacation Date.');return;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(openingDate)){alert('Please select a valid Opening Date.');return;}
+
+    const button=$('#saveReportCardDates');
+    const status=$('#reportDatesStatus');
+    if(button){button.disabled=true;button.textContent='Saving...';}
+    if(status) status.textContent='Saving Report Card Dates to Google Sheets...';
+    afisapShowUploadLoader("Saving Report Card Dates","Saving vacation and opening dates to Google Sheets...",15);
+
+    try{
+      afisapUpdateUploadLoader("Updating the official Academic Settings sheet...",55);
+      const result=await afisapSaveReportCardDatesToCloud(year,term,vacationDate,openingDate);
+      if(!result || result.success!==true){
+        throw new Error(result?.error||'Google Sheets did not confirm the save.');
+      }
+
+      d.reportCardDates=d.reportCardDates||{};
+      d.reportCardDates[afisapReportCardDateKey(year,term)]={
+        settingId:afisapReportCardDateSettingId(year,term),
+        academicYear:year,
+        term,
+        vacationDate,
+        openingDate,
+        lastUpdated:new Date().toISOString()
+      };
+      save();
+      refreshReportDateFields();
+      afisapUpdateUploadLoader("Report Card Dates saved successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,220));
+      afisapHideUploadLoader();
+      alert('Report Card Dates saved successfully for '+year+' / '+term+'.');
+    }catch(error){
+      console.error('AFISAP Report Card Dates save failed:',error);
+      if(status) status.textContent='Report Card Dates were not saved. '+(error?.message||'Cloud request failed.');
+      afisapUpdateUploadLoader("Report Card Dates could not be saved.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert('Report Card Dates were not saved to Google Sheets.\n\nReason: '+(error?.message||'Cloud request failed.'));
+    }finally{
+      if(button){button.disabled=false;button.textContent='Save Report Card Dates';}
+    }
   });
-  $('#classResultsTab').addEventListener('click',()=>{
-    $('#studentReportPanel').style.display='none';
-    $('#classResultsPanel').style.display='block';
-    $('#studentReportTab').className='secondary';
-    $('#classResultsTab').className='primary';
+
+  // Default the date-setting term to the school's current term when available.
+  const currentSchoolTerm=afisapNormalizeReportTerm(d.school?.term||'');
+  if(currentSchoolTerm && $('#reportDatesTerm')) $('#reportDatesTerm').value=currentSchoolTerm;
+  refreshReportDateFields();
+
+  const studentName=(s)=>String(s.name||[s.firstName,s.middleName,s.surname,s.otherName].filter(Boolean).join(' ')||s.fullName||'Unnamed Student').trim();
+
+  const renderBulkStudents=()=>{
+    const cls=String($('#bulkReportClass')?.value||'').trim();
+    const students=(d.students||[]).filter(s=>!cls||String(s.class||s.className||'').trim()===cls);
+    const list=$('#bulkStudentList');
+    if(!list) return;
+    list.innerHTML=students.length ? students.map(s=>{
+      const bulkIndex=(d.students||[]).indexOf(s);
+      return `
+      <label class='bulk-student-row'>
+        <input type='checkbox' class='bulk-student-check' data-student-index='${bulkIndex}' value='${esc(afisapStudentKey(s))}'>
+        <span><b>${esc(studentName(s))}</b><small>${esc(s.sid||s.studentId||s["Student ID"]||s.id||'')} · ${esc(s.class||s.className||'')}</small></span>
+      </label>`;
+    }).join('') : `<div class='empty'>No students found for the selected class.</div>`;
+    list.querySelectorAll('.bulk-student-check').forEach(cb=>cb.addEventListener('change',updateBulkCount));
+    updateBulkCount();
+  };
+
+  const updateBulkCount=()=>{
+    const count=document.querySelectorAll('.bulk-student-check:checked').length;
+    const total=document.querySelectorAll('.bulk-student-check').length;
+    const el=$('#bulkReportCount');
+    if(el) el.textContent=`${count} of ${total} students selected`;
+  };
+
+  const selectedBulkStudents=()=>{
+    const checked=[...document.querySelectorAll('#bulkStudentList .bulk-student-check:checked')];
+    if(!checked.length) return [];
+
+    // Primary path: each checkbox points directly to the same student record
+    // in d.students that was used to render the Bulk Report list.
+    const selected=[];
+    const seen=new Set();
+    checked.forEach(cb=>{
+      const index=Number(cb.dataset.studentIndex);
+      if(Number.isInteger(index) && index>=0 && index<(d.students||[]).length){
+        const student=d.students[index];
+        if(student && !seen.has(student)){
+          seen.add(student);
+          selected.push(student);
+        }
+      }
+    });
+
+    if(selected.length===checked.length) return selected;
+
+    // Compatibility fallback for any legacy checkbox already present in the DOM.
+    const ids=new Set(checked.map(cb=>String(cb.value||'').trim()).filter(Boolean));
+    (d.students||[]).forEach(s=>{
+      if(seen.has(s)) return;
+      const candidates=[
+        afisapStudentKey(s),s.id,s.sid,s.studentId,s["Student ID"],
+        s.indexNumber,s["Index Number"]
+      ].map(v=>String(v||'').trim()).filter(Boolean);
+      if(candidates.some(v=>ids.has(v))){
+        seen.add(s);
+        selected.push(s);
+      }
+    });
+    return selected;
+  };
+
+  const buildBulkDocument=(students)=>{
+    const term=String($('#bulkReportTerm')?.value||'Term 1').trim();
+    const year=String($('#bulkReportYear')?.value||d.school?.year||'').trim();
+    if(!students.length){alert('Please select at least one student.');return false;}
+    const html=students.map(s=>buildStudentReportCardHTML(s,term,year)).join("<div class='bulk-report-page-break'></div>");
+    $('#bulkReport').innerHTML=html;
+    $('#bulkReport').style.display='block';
+    $('#report').style.display='none';
+    $('#classResultsReport').style.display='none';
+    return true;
+  };
+
+  const previewBulk=()=>{
+    const students=selectedBulkStudents();
+    if(!buildBulkDocument(students)) return;
+    setTimeout(()=>document.getElementById('bulkReport')?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+  };
+
+  const printBulk=()=>{
+    const students=selectedBulkStudents();
+    if(!buildBulkDocument(students)) return;
+
+    // Keep the native Print command inside the original button click.
+    // Some browsers suppress/delay window.print() when it is launched later
+    // from a timer. The report is already fully built synchronously above,
+    // so force layout once and open Print Preview immediately.
+    document.body.classList.add('printing-bulk-report-cards');
+    const cleanup=()=>document.body.classList.remove('printing-bulk-report-cards');
+    window.addEventListener('afterprint',cleanup,{once:true});
+
+    const bulkReport=document.getElementById('bulkReport');
+    if(bulkReport){
+      bulkReport.style.display='block';
+      // Force the browser to finish laying out all student pages before print.
+      void bulkReport.offsetHeight;
+    }
+
+    try{
+      window.focus();
+      window.print();
+    }catch(error){
+      cleanup();
+      console.error('AFISAP bulk report printing failed:',error);
+      alert('Unable to open the browser Print Preview. Please try again.');
+    }
+  };
+
+  $('#bulkReportClass').addEventListener('change',renderBulkStudents);
+  $('#bulkSelectAll').addEventListener('click',()=>{
+    document.querySelectorAll('.bulk-student-check').forEach(cb=>cb.checked=true);
+    updateBulkCount();
   });
+  $('#bulkClearAll').addEventListener('click',()=>{
+    document.querySelectorAll('.bulk-student-check').forEach(cb=>cb.checked=false);
+    updateBulkCount();
+  });
+  $('#bulkPreviewReports').addEventListener('click',previewBulk);
+  $('#bulkPrintReports').addEventListener('click',printBulk);
+  $('#bulkPrintClassReports').addEventListener('click',()=>{
+    const cls=String($('#bulkReportClass')?.value||'').trim();
+    if(!cls){alert('Please select a class first.');return;}
+    document.querySelectorAll('.bulk-student-check').forEach(cb=>cb.checked=true);
+    updateBulkCount();
+    printBulk();
+  });
+
+  renderBulkStudents();
   $('#generateClassResults').addEventListener('click',window.generateClassResults);
 }
 
@@ -2989,9 +4199,9 @@ window.generateClassResults=()=>{
   const students=(d.students||[]).filter(s=>String(s.class||'').trim()===cls);
   if(!students.length){alert('No students found in the selected class.');return;}
 
-  const studentById=new Map(students.map(s=>[String(s.id),s]));
+  const studentById=new Map(students.map(s=>[afisapStudentKey(s),s]));
   const results=(d.results||[]).filter(r=>{
-    if(!studentById.has(String(r.studentId))) return false;
+    if(!studentById.has(String(r.studentId).trim())) return false;
     const rt=String(r.term||r.Term||'').trim();
     const ry=String(r.academicYear||r['Academic Year']||r.year||'').trim();
     return (!rt || rt===term) && (!year || !ry || ry===year);
@@ -3017,7 +4227,7 @@ window.generateClassResults=()=>{
   const grouped=new Map();
   students.forEach(s=>grouped.set(String(s.id),[]));
   results.forEach(r=>{
-    const key=String(r.studentId);
+    const key=String(r.studentId).trim();
     if(grouped.has(key)) grouped.get(key).push(r);
   });
 
@@ -3047,9 +4257,10 @@ window.generateClassResults=()=>{
       return `${esc(subject)}: ${esc(total)}`;
     }).join('<br>')||'—';
 
+    const roster=afisapClassRosterInfo(x.s);
     return `<tr>
       <td>${esc(x.rank||'—')}</td>
-      <td>${esc(studentName(x.s))}</td>
+      <td>${esc(studentName(x.s))}<br><small>Roll No.: ${esc(roster.rollNo||'—')} · No. on Roll: ${esc(roster.noOnRoll)}</small></td>
       <td>${esc(x.s.sid||x.s.studentId||x.s.id||'')}</td>
       <td>${subjectScores}</td>
       <td>${esc(x.total)}</td>
@@ -3108,20 +4319,43 @@ window.generateClassResults=()=>{
   setTimeout(()=>window.print(),250);
 };
 
-window.makeReport=()=>{
-  const classResultsReport=document.getElementById('classResultsReport');
-  if(classResultsReport) classResultsReport.style.display='none';
+function afisapFormatStudentReportDate(value){
+  const raw=String(value||"").trim();
+  if(!raw) return "";
+  const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!iso) return raw;
+  const year=Number(iso[1]), month=Number(iso[2]), day=Number(iso[3]);
+  if(!year || month<1 || month>12 || day<1 || day>31) return "";
+  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const mod100=day%100;
+  const suffix=(mod100>=11&&mod100<=13)?"th":({1:"st",2:"nd",3:"rd"}[day%10]||"th");
+  return day+suffix+" "+months[month-1]+" "+year;
+}
 
-  const s=d.students.find(x=>String(x.id)===String($('#repStu').value));
-  if(!s){alert('Please select a student.');return;}
+function buildStudentReportCardHTML(s, term, year){
 
   const studentName=s.name||[s.firstName,s.middleName,s.surname,s.otherName].filter(Boolean).join(' ');
   const studentId=s.sid||s.studentId||s.id||'';
   const studentClass=s.class||s.className||'';
-  const term=$('#repTerm').value;
+  const roster=afisapClassRosterInfo(s);
+  term=term||'Term 1';
+  year=year||String(d.school?.year||'').trim();
+  const academicPosition=afisapAcademicPositionInfo(s,term,year);
+  const overallPosition=academicPosition.ordinal||'—';
+  const positionWatermark=academicPosition.rank||'';
 
   // Results: use every saved subject, including subjects created through "Other".
-  const rr=(d.results||[]).filter(x=>String(x.studentId)===String(s.id));
+  const rr=(d.results||[]).filter(x=>{
+    if(String(x.studentId).trim()!==afisapStudentKey(s)) return false;
+    const rt=String(x.term||x.Term||'').trim();
+    const ry=String(x.academicYear||x['Academic Year']||x.year||'').trim();
+    return (!rt || rt===term) && (!ry || !year || ry===year);
+  });
+  const historicalClass=rr.map(x=>String(x.className||x.class||"").trim()).find(Boolean)||"";
+  const promotionYearMatch=String(s._afisapPromotionAcademicYear||"").trim()===String(year||"").trim();
+  const reportStudentClass=historicalClass||(promotionYearMatch?String(s._afisapPreviousClass||"").trim():"")||studentClass;
+  const reportClassStudentIds=new Set((d.results||[]).filter(x=>{const ry=String(x.academicYear||x['Academic Year']||x.year||'').trim(),rt=String(x.term||x.Term||'').trim(),rc=String(x.className||x.class||'').trim();return (!year||!ry||ry===year)&&(!term||!rt||rt===term)&&rc.toLowerCase()===String(reportStudentClass||'').toLowerCase();}).map(x=>String(x.studentSid||x.studentId||'').trim()).filter(Boolean));
+  const reportNoOnRoll=reportClassStudentIds.size||roster.noOnRoll;
   const subjectList=Array.from(new Set([...(d.subjects||[]),...rr.map(x=>x.subject).filter(Boolean)]));
   const total=rr.reduce((a,x)=>a+Number(x.cs||0)+Number(x.es||0),0);
   const max=subjectList.length*100;
@@ -3131,7 +4365,7 @@ window.makeReport=()=>{
     const cs=r?.cs??'';
     const es=r?.es??'';
     const t=r?(Number(r.cs||0)+Number(r.es||0)):'';
-    const position=r?.position||'';
+    const position=r?overallPosition:'';
     const remark=r?.remarks||'';
     return `<tr>
       <td>${esc(sub)}</td><td>${esc(cs)}</td><td>${esc(es)}</td>
@@ -3143,30 +4377,64 @@ window.makeReport=()=>{
   const attRaw=d.attendance||{};
   const attValues=Array.isArray(attRaw)
     ? attRaw.filter(x=>String(x.studentId)===String(s.id))
-    : Object.values(attRaw).filter(x=>x&&String(x.studentId)===String(s.id));
-  const markedDays=attValues.length;
-  const presentDays=attValues.filter(x=>x.present===true||x.present==='YES').length;
-  const absentDays=attValues.filter(x=>x.present===false||x.present==='NO').length;
+    : Object.values(attRaw).filter(x=>x&&String(x.studentId).trim()===afisapStudentKey(s));
+  const actualAttendance=attValues.filter(x=>String(x.date||'').trim());
+  const calculatedMarkedDays=[...new Set(actualAttendance.map(x=>String(x.date||'').trim()).filter(Boolean))].length;
+  const calculatedPresentDays=[...new Set(actualAttendance.filter(x=>x.present===true||x.present==='YES').map(x=>String(x.date||'').trim()).filter(Boolean))].length;
+  const presentDays=afisapAttendanceReportOverride(s,year,term)??calculatedPresentDays;
+  const markedDays=afisapAttendanceOutOfOverride(s,year,term)??calculatedMarkedDays;
+  const absentDays=Math.max(0,calculatedMarkedDays-calculatedPresentDays);
 
-  // Fees: include all fee records belonging to this student.
-  const feeRecords=(d.feeRecords||[]).filter(x=>String(x.studentId)===String(s.id));
-  const feeRows=feeRecords.map(r=>{
-    const due=Number(r.amountDue||0), paid=Number(r.amountPaid||0), bal=Math.max(0,due-paid);
-    return `<tr><td>${esc(r.feeItem||'Fee')}</td><td>GHS ${due.toFixed(2)}</td><td>GHS ${paid.toFixed(2)}</td><td>GHS ${bal.toFixed(2)}</td></tr>`;
+  // Fees & Textbooks shown on the Report Card only.
+  // Use this student's actual assigned Fee Item names and assessed Amount Due.
+  // No generic category mapping is used here, and no fee/payment records are changed.
+  const reportYear=String(year||d.school?.year||'').trim();
+  const reportStudentFeeKeys=new Set([
+    s.id,s.sid,s.studentId,s["Student ID"],s.studentID,s.indexNumber,s["Index Number"]
+  ].filter(v=>v!==undefined&&v!==null&&String(v).trim()!=="").map(v=>String(v).trim()));
+
+  const feeRecords=(d.feeRecords||[]).filter(x=>{
+    const recordKeys=[
+      x.studentId,x.studentSid,x.sid,x.studentID,x["Student ID"],x.indexNumber,x["Index Number"]
+    ].filter(v=>v!==undefined&&v!==null&&String(v).trim()!=="").map(v=>String(v).trim());
+    if(!recordKeys.some(k=>reportStudentFeeKeys.has(k))) return false;
+
+    const ry=String(x.academicYear||x.year||x["Academic Year"]||'').trim();
+    const rt=String(x.term||x.Term||'').trim();
+    return (!ry || !reportYear || ry===reportYear) && (!rt || !term || rt===term);
+  });
+
+  const reportFeeRows=feeRecords.map(r=>{
+    const rawFeeItem=String(r.feeItem||r["Fee Item"]||r["Fee Name"]||r["Fee Type"]||r["Fee Description"]||r.Fees||r.Fee||r.Description||r.Particulars||r.Item||'').trim();
+    let item=rawFeeItem;
+    if(!item){
+      const feeId=String(r.feeId||r["Fee ID"]||r.id||'').trim();
+      const match=feeId.match(/^FEE\|([^|]+)\|/i);
+      if(match){try{item=decodeURIComponent(match[1])}catch(e){item=match[1]}}
+    }
+    item=item||'Unspecified Fee Item';
+    const amount=Number(r.amountDue??r["Amount Due"]??0);
+    const safeAmount=Number.isFinite(amount)?amount:0;
+    return `<tr><td>${esc(item)}</td><td>GHS ${safeAmount.toFixed(2)}</td></tr>`;
   }).join('');
-  const totalDue=feeRecords.reduce((a,r)=>a+Number(r.amountDue||0),0);
-  const totalPaid=feeRecords.reduce((a,r)=>a+Number(r.amountPaid||0),0);
-  const totalBalance=Math.max(0,totalDue-totalPaid);
+  const reportFeeTotal=feeRecords.reduce((sum,r)=>{
+    const amount=Number(r.amountDue??r["Amount Due"]??0);
+    return sum+(Number.isFinite(amount)?amount:0);
+  },0);
 
   // Student information stored in the Student section.
   const guardian=s.guardian||s.guardianName||'';
   const guardianContact=s.guardianContact||s.contact||s.phone||'';
   const guardianEmail=s.guardianEmail||s.email||'';
   const address=s.address||'';
+  const gender=String(s.gender||'').trim();
+  const dateOfBirth=afisapFormatStudentReportDate(s.dob||s.dateOfBirth||s['Date of Birth']||'');
+  const admissionDate=afisapFormatStudentReportDate(s.admissionDate||s['Admission Date']||'');
+  const ghanaCard=String(s.ghanaCard||s.ghanaCardNumber||s['Ghana Card']||s['Ghana Card Number']||'').trim();
   const photo=s.photo||'';
 
   // Class teacher information from the Classes & Subjects assignment.
-  const classRecord=(d.classes||[]).find(c=>String(c.name||'')===String(studentClass));
+  const classRecord=(d.classes||[]).find(c=>String(c.name||'')===String(reportStudentClass));
   const teacherId=classRecord?.teacherId;
   const teacher=(d.staff||[]).find(t=>String(t.sid||t.staffId||t.id||t.email||'')===String(teacherId||''));
   const teacherName=teacher
@@ -3178,84 +4446,480 @@ window.makeReport=()=>{
     total/max>=.8?'Very Good (2)':total/max>=.7?'Good (3)':'Needs Improvement'
   ):'Needs Improvement';
 
-  $('#report').innerHTML=`
-    <div class='report-print-sheet'>
-      <img class='report-card-watermark' src='afisap_royal_academy_logo.png' alt='' aria-hidden='true'>
-      <div class='report-attendance-style-header'>
-        <img class='report-attendance-style-logo' src='afisap_royal_academy_logo.png' alt='AFISAP Royal Academy'>
-        <div class='report-attendance-style-school'>
-          <h2>${esc(d.school.name)}</h2>
-          <h3>STUDENT REPORT CARD</h3>
-          <p>${esc(d.school.year)} &nbsp; | &nbsp; ${esc(term)}</p>
-          <div class='report-attendance-style-contact'>
-            <span>Website: www.afisaproyalacademy.com</span>
-            <span>Email: afisaproyalacademy@gmail.com</span>
-            <span>Phone: 0556104186 / 0242727685 / 0248743558</span>
-          </div>
-        </div>
-      </div>
+  // Official report-card display values. These read existing system data only;
+  // no database/storage fields or calculations are changed here.
+  const termDisplay=String(term||'').replace(/^Term\s*/i,'').trim()||String(term||'');
+  const schoolWebsite=String(d.school?.website||'www.afisaproyalacademy.com').trim();
+  const schoolPhone=String(d.school?.phone||'055 610 4186 / 024 272 7685 / 024 874 3558').trim();
+  const schoolEmail=String(d.school?.email||'afisaproyalacademy@gmail.com').trim();
+  const reportCardDates=afisapGetReportCardDates(year,term);
+  const vacationDate=afisapFormatReportCardDate(reportCardDates.vacationDate);
+  const openingDate=afisapFormatReportCardDate(reportCardDates.openingDate);
+  const promotionStatus=String(s._afisapPromotionStatus||'').trim().toLowerCase();
+  const promotionTerm3=/^(term\s*3|3|third\s*term)$/i.test(String(term||'').trim());
+  const promotedTo=(promotionYearMatch&&promotionTerm3&&['pending','applied'].includes(promotionStatus))?String(s._afisapPromotedTo||'').trim():"";
+  const teacherRemarks=String(s.teacherRemarks||s.reportRemarks||'').trim();
 
-      <div class='student-report-profile'>
-        <div class='report-photo'>
+  const reportHtml=`
+    <div class='report-print-sheet afisap-official-report-card'>
+      <img class='report-card-watermark' src='afisap_royal_academy_logo.png' alt='' aria-hidden='true'>
+      ${positionWatermark?`<div class='report-position-watermark' aria-hidden='true'>${esc(positionWatermark)}</div>`:''}
+
+      <div class='official-report-header'>
+        <img class='official-report-logo' src='afisap_royal_academy_logo.png' alt='AFISAP Royal Academy'>
+        <div class='official-report-school'>
+          <h1>${esc(d.school.name||'AFISAP ROYAL ACADEMY')}</h1>
+          <div class='official-report-motto'>LEARNING TO LEARN</div>
+          <div class='official-report-phones'>${esc(schoolPhone)}</div>
+          <div class='official-report-contact'>${esc(schoolEmail)}${schoolWebsite?` &nbsp; | &nbsp; ${esc(schoolWebsite)}`:''}</div>
+        </div>
+        <div class='official-report-student-photo report-photo'>
           ${photo?`<img src='${esc(photo)}' alt='Student Passport Photo'>`:'<span>No Photo</span>'}
         </div>
-        <div class='student-report-details'>
-          <p><b>Student:</b> ${esc(studentName)}</p>
-          <p><b>Student ID:</b> ${esc(studentId)}</p>
-          <p><b>Class:</b> ${esc(studentClass)}</p>
-          <p><b>Gender:</b> ${esc(s.gender||'')}</p>
-          <p><b>Date of Birth:</b> ${esc(s.dateOfBirth||s.dob||'')}</p>
-          <p><b>Admission Date:</b> ${esc(s.admissionDate||'')}</p>
+      </div>
+
+      <table class='official-report-period-table'>
+        <tr>
+          <th>Academic Year: <strong>${esc(year||d.school.year||'')}</strong></th>
+          <th>Term: <strong>${esc(termDisplay)}</strong></th>
+        </tr>
+        <tr>
+          <td>Vacation Date: <strong>${esc(vacationDate||'—')}</strong></td>
+          <td>Opening Date: <strong>${esc(openingDate||'—')}</strong></td>
+        </tr>
+      </table>
+
+      <table class='official-report-student-info'>
+        <tr><th colspan='4'>Student &amp; Class Information</th></tr>
+        <tr>
+          <td class='official-label'>Name:</td><td class='official-value official-student-name'>${esc(studentName)}</td>
+          <td class='official-label'>Roll No.:</td><td class='official-value'>${esc(roster.rollNo||'—')}</td>
+        </tr>
+        <tr>
+          <td class='official-label'>Class:</td><td class='official-value'>${esc(reportStudentClass)}</td>
+          <td class='official-label'>No. on Roll:</td><td class='official-value'>${esc(reportNoOnRoll)}</td>
+        </tr>
+        <tr>
+          <td class='official-label'>Student ID:</td><td class='official-value'>${esc(studentId)}</td>
+          <td class='official-label'>Gender:</td><td class='official-value'>${esc(gender||'—')}</td>
+        </tr>
+        <tr>
+          <td class='official-label'>Date of Birth:</td><td class='official-value'>${esc(dateOfBirth||'—')}</td>
+          <td class='official-label'>Admission Date:</td><td class='official-value'>${esc(admissionDate||'—')}</td>
+        </tr>
+        <tr>
+          <td class='official-label'>Guardian:</td><td class='official-value'>${esc(guardian||'—')}</td>
+          <td class='official-label'>Guardian Contact:</td><td class='official-value'>${esc(guardianContact||'—')}</td>
+        </tr>
+        ${(guardianEmail||ghanaCard||address)?`<tr>
+          <td class='official-label'>${ghanaCard?'Ghana Card:':guardianEmail?'Guardian Email:':'Address:'}</td>
+          <td class='official-value'>${esc(ghanaCard||guardianEmail||address)}</td>
+          <td class='official-label'>${ghanaCard&&guardianEmail?'Guardian Email:':(ghanaCard||guardianEmail)&&address?'Address:':''}</td>
+          <td class='official-value'>${esc(ghanaCard&&guardianEmail?guardianEmail:(ghanaCard||guardianEmail)&&address?address:'')}</td>
+        </tr>`:''}
+      </table>
+
+      <table class='official-report-results'>
+        <thead><tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Total Marks</th><th>Position</th><th>Remarks</th></tr></thead>
+        <tbody>
+          ${rows}
+          <tr class='official-overall-row'><th>OVERALL</th><td></td><td></td><th>${total}/${max}</th><th>Position: ${esc(overallPosition)}</th><th>${esc(overallRemark)}</th></tr>
+        </tbody>
+      </table>
+
+      <div class='official-report-attendance-line'>
+        <span><b>ATTENDANCE MADE:</b> ${presentDays}</span>
+        <span><b>OUT OF:</b> ${markedDays}</span>
+        <span><b>PROMOTED TO:</b> ${esc(promotedTo||'________________')}</span>
+      </div>
+
+      <div class='official-report-remarks'>
+        <b>TEACHER'S REMARKS</b>
+        <div class='official-remark-line'>${teacherRemarks?esc(teacherRemarks):'&nbsp;'}</div>
+        <div class='official-remark-line'>&nbsp;</div>
+      </div>
+
+      <table class='official-report-fees'>
+        <thead>
+          <tr><th colspan='2'>FEES &amp; TEXTBOOKS</th></tr>
+          <tr><th>Fee Item</th><th>Amount</th></tr>
+        </thead>
+        <tbody>
+          ${reportFeeRows || `<tr><td colspan='2'>No outstanding fee items.</td></tr>`}
+          ${feeRecords.length?`<tr><th>TOTAL</th><th>GHS ${reportFeeTotal.toFixed(2)}</th></tr>`:''}
+        </tbody>
+      </table>
+
+      <div class='official-report-position-line'>
+        <b>Position:</b> ${esc(overallPosition)} &nbsp;&nbsp; <b>No. on Roll:</b> ${esc(reportNoOnRoll)}
+      </div>
+
+      <div class='official-report-signatures'>
+        <div class='official-class-teacher-signature'>
+          <div class='official-signature-space'></div>
+          <div class='official-signature-line'></div>
+          <b>CLASS TEACHER'S SIGNATURE</b>
+          <div class='official-signature-name'>${esc(teacherName||'')}</div>
         </div>
-        <div class='student-report-details'>
-          <p><b>Guardian:</b> ${esc(guardian)}</p>
-          <p><b>Guardian Contact:</b> ${esc(guardianContact)}</p>
-          <p><b>Guardian Email:</b> ${esc(guardianEmail)}</p>
-          <p><b>Address:</b> ${esc(address)}</p>
+        <div class='headmaster-signature-block'>
+          <img class='headmaster-signature-image' src='afisap_headmaster_signature.png' alt='Headmaster Signature'>
+          <div class='headmaster-signature-line'></div>
+          <p class='headmaster-signature-title'><b>${esc(head||'HEAD OF SCHOOL')}</b><br>Head Of School</p>
         </div>
       </div>
 
-      <h3>RESULTS & MARKS</h3>
-      <table>
-        <tr><th>Subject</th><th>Class Score</th><th>Exam Score</th><th>Total Marks</th><th>Position</th><th>Remarks</th></tr>
-        ${rows}
-        <tr><th>OVERALL</th><td></td><td></td><th>${total}/${max}</th><th>—</th><th>${esc(overallRemark)}</th></tr>
-      </table>
-
-      <h3>ATTENDANCE</h3>
-      <table>
-        <tr><th>Days Marked</th><th>Present</th><th>Absent</th><th>Attendance Rate</th></tr>
-        <tr>
-          <td>${markedDays}</td><td>${presentDays}</td><td>${absentDays}</td>
-          <td>${markedDays?((presentDays/markedDays)*100).toFixed(1)+'%':'0%'}</td>
-        </tr>
-      </table>
-      <p><b>ATTENDANCE MADE:</b> ${presentDays} OUT OF ${markedDays} &nbsp; <b>PROMOTED TO:</b> __________________</p>
-
-      <h3>FEES & FINANCIAL RECORDS</h3>
-      <table>
-        <tr><th>Fee Item</th><th>Due</th><th>Paid</th><th>Balance</th></tr>
-        ${feeRows||`<tr><td colspan='4'>No fee records entered for this student.</td></tr>`}
-        <tr><th>TOTAL</th><th>GHS ${totalDue.toFixed(2)}</th><th>GHS ${totalPaid.toFixed(2)}</th><th>GHS ${totalBalance.toFixed(2)}</th></tr>
-      </table>
-
-      <h3>TEACHER & SCHOOL INFORMATION</h3>
-      <p><b>Class Teacher:</b> ${esc(teacherName||'')}</p>
-      <p><b>Teacher's Remarks:</b> ________________________________________________________________</p>
-      <p><b>Class Teacher's Signature:</b> ______________________________</p>
-      <p><b>${esc(head)}</b><br>Head Of School</p>
-      <p style='text-align:center;font-style:italic'>Learning to Learn</p>
+      <div class='official-report-footer'>AFISAP ROYAL ACADEMY &nbsp; • &nbsp; LEARNING TO LEARN</div>
 
       <div class='report-actions'>
         <button class='primary' onclick='window.print()'>Print Report</button>
       </div>
     </div>`;
 
-  $('#report').style.display='block';
-  // Keep the existing in-system preview, then use the browser's native print preview.
-  setTimeout(()=>window.print(),250);
+  return reportHtml;
+
 }
 
+async function afisapRefreshStudentClassForReport(student){
+  if(!student) return student;
+  const sid=String(student.sid||student.studentId||student.id||'').trim();
+  if(!sid) return student;
+
+  try{
+    // Read the authoritative Students sheet before building the print preview.
+    // This guarantees that a just-promoted student's current class is used.
+    const result=await afisapCloudJsonp({action:'read',sheet:'Students'});
+    if(result&&result.success===true&&Array.isArray(result.records)){
+      const record=result.records.find(r=>String(r['Student ID']||'').trim()===sid);
+      const cloudClass=String(record&&record['Class']||'').trim();
+      if(cloudClass){
+        student.class=cloudClass;
+        student.className=cloudClass;
+        persist();
+      }
+    }
+  }catch(error){
+    console.warn('AFISAP report-card class refresh unavailable; using current local class.',error);
+  }
+  return student;
+}
+
+window.makeReport=async()=>{
+  const classResultsReport=document.getElementById('classResultsReport');
+  if(classResultsReport) classResultsReport.style.display='none';
+  const selectedKey=String($('#repStu')?.value||'').trim();
+  const s=d.students.find(x=>afisapStudentKey(x)===selectedKey);
+  if(!s){alert('Please select a student.');return;}
+  const term=String($('#repTerm')?.value||'Term 1').trim();
+  const year=String($('#repYear')?.value||d.school?.year||'').trim();
+  if(String(year||'').trim()===String(d.school?.year||'').trim())await afisapRefreshStudentClassForReport(s);
+  $('#report').innerHTML=buildStudentReportCardHTML(s,term,year);
+  $('#report').style.display='block';
+  setTimeout(()=>window.print(),250);
+};
+
+
+
+
+async function afisapUploadAnnouncementAttachment(file,postId){
+  if(!file) return {fileId:"",fileName:""};
+  if(file.size>15*1024*1024) throw new Error("Attachment is larger than 15 MB.");
+
+  const data=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||""));
+    reader.onerror=()=>reject(new Error("Could not read the selected attachment."));
+    reader.readAsDataURL(file);
+  });
+
+  const safeOriginal=String(file.name||"attachment").replace(/[\\/:*?"<>|#%{}~&]/g,"_");
+  const uploadName="AA-"+String(postId||Date.now())+"-"+safeOriginal;
+
+  const result=await afisapSecurePost({
+    action:"driveUpload",
+    fileName:uploadName,
+    mimeType:file.type||"application/octet-stream",
+    fileData:data,
+    category:"announcements",
+    studentId:""
+  },{includeAuth:true});
+  if(!result?.success||!result.fileId)throw new Error(result?.error||"The attachment upload was not confirmed by Google Drive.");
+  return {fileId:String(result.fileId),fileName:safeOriginal};
+}
+
+function afisapAnnouncementRecordToSheet(item){
+  return {
+    "Announcement ID":String(item.id||""),
+    "Type":String(item.type||"Announcement"),
+    "Title":String(item.title||""),
+    "Message":String(item.message||""),
+    "Class":String(item.className||""),
+    "Subject":String(item.subject||""),
+    "Target Audience":String(item.targetAudience||""),
+    "Date Posted":String(item.datePosted||""),
+    "Due Date":String(item.dueDate||""),
+    "Attachment":String(item.attachmentFileId||""),
+    "Attachment Name":String(item.attachmentName||""),
+    "Status":String(item.status||"Published"),
+    "Created By":String(item.createdBy||"Administrator"),
+    "Academic Year":String(item.academicYear||""),
+    "Term":String(item.term||""),
+    "Last Updated":String(item.lastUpdated||new Date().toISOString())
+  };
+}
+
+function afisapAnnouncementsLoadingStyle(){
+  if(document.getElementById('afisapAnnouncementsLoadingStyle')) return;
+  const style=document.createElement('style');
+  style.id='afisapAnnouncementsLoadingStyle';
+  style.textContent=`.afisap-publish-spinner{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:afisapPublishSpin .7s linear infinite}@keyframes afisapPublishSpin{to{transform:rotate(360deg)}}`;
+  document.head.appendChild(style);
+}
+
+function announcementsAssignments(){
+  afisapAnnouncementsLoadingStyle();
+  const records=Array.isArray(d.announcementsAssignments)?d.announcementsAssignments:[];
+  let activeTab=window.afisapAnnouncementsTab||"Announcement";
+  let editingId=window.afisapAnnouncementsEditingId||"";
+  const editing=records.find(x=>String(x.id)===String(editingId))||null;
+  if(editing) activeTab=editing.type||activeTab;
+
+  const classNames=afisapCentralClassNames();
+  const subjects=[...new Set((d.subjects||[]).map(x=>String(x||"").trim()).filter(Boolean))];
+  const today=new Date().toISOString().slice(0,10);
+  const formType=editing?.type||window.afisapAnnouncementsNewType||activeTab||"Announcement";
+  const isAssignment=formType==="Assignment";
+  const isPost=formType==="Post";
+  const targetValue=editing?.targetAudience||((isAssignment)?"Specific Class":"Entire School");
+  const selectedClass=editing?.className||"";
+
+  const filtered=records.filter(r=>String(r.type||"Announcement")===activeTab)
+    .sort((a,b)=>String(b.datePosted||"").localeCompare(String(a.datePosted||"")) || String(b.lastUpdated||"").localeCompare(String(a.lastUpdated||"")));
+
+  $('#app').innerHTML=`
+    <div class='panel'>
+      <div class='panel-title'>
+        <div><h3>Announcements & Assignments</h3><span>School-wide notices, class announcements and home assignments stored in Google Sheets.</span></div>
+        <div style='display:flex;gap:8px;flex-wrap:wrap'>
+          <button class='primary' id='newAnnouncementBtn' type='button'>+ New Announcement</button>
+          <button class='primary' id='newAssignmentBtn' type='button'>+ New Assignment</button>
+          <button class='secondary' id='newPostBtn' type='button'>+ New Post</button>
+        </div>
+      </div>
+
+      <div class='report-mode-tabs' style='margin-top:14px'>
+        <button type='button' class='${activeTab==="Announcement"?"primary":"secondary"}' data-aa-tab='Announcement'>Announcements</button>
+        <button type='button' class='${activeTab==="Assignment"?"primary":"secondary"}' data-aa-tab='Assignment'>Home Assignments</button>
+        <button type='button' class='${activeTab==="Post"?"primary":"secondary"}' data-aa-tab='Post'>Posts</button>
+      </div>
+    </div>
+
+    <div class='grid' style='margin-top:16px;align-items:start'>
+      <div class='panel'>
+        <h3>${editing?'Edit '+esc(formType):(formType==='Assignment'?'New Home Assignment':formType==='Post'?'New General Post':'New School Announcement')}</h3>
+        <form id='aaForm' class='form' style='margin-top:12px'>
+          <input type='hidden' name='recordId' value='${esc(editing?.id||"")}'>
+          <input type='hidden' name='type' value='${esc(formType)}'>
+          <label>${isAssignment?'Assignment Title':'Title'}
+            <input name='title' value='${esc(editing?.title||"")}' required>
+          </label>
+          ${isAssignment?`<label>Subject
+            <select name='subject' required><option value=''>Select Subject</option>${subjects.map(s=>`<option value='${esc(s)}' ${String(editing?.subject||"")===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+          </label>`:''}
+          ${isAssignment?`<label>Class
+            <select name='className' required><option value=''>Select Class</option>${classNames.map(c=>`<option value='${esc(c)}' ${selectedClass===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+          </label>`:`<label>Target Audience
+            <select name='targetAudience' id='aaTargetAudience'>
+              <option value='Entire School' ${targetValue==='Entire School'?'selected':''}>Entire School</option>
+              <option value='Specific Class' ${targetValue==='Specific Class'?'selected':''}>Specific Class</option>
+            </select>
+          </label>
+          <label id='aaClassWrap' style='display:${targetValue==='Specific Class'?'block':'none'}'>Specific Class
+            <select name='className'><option value=''>Select Class</option>${classNames.map(c=>`<option value='${esc(c)}' ${selectedClass===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+          </label>`}
+          <label>${isAssignment?'Instructions':'Message'}
+            <textarea name='message' rows='5' required>${esc(editing?.message||"")}</textarea>
+          </label>
+          <label>Date Posted
+            <input name='datePosted' type='date' value='${esc(editing?.datePosted||today)}' required>
+          </label>
+          ${isAssignment?`<label>Due Date
+            <input name='dueDate' type='date' value='${esc(editing?.dueDate||"")}' required>
+          </label>`:''}
+          <label>Status
+            <select name='status'>
+              <option ${String(editing?.status||'Published')==='Published'?'selected':''}>Published</option>
+              <option ${String(editing?.status||'Published')==='Draft'?'selected':''}>Draft</option>
+              <option ${String(editing?.status||'Published')==='Archived'?'selected':''}>Archived</option>
+            </select>
+          </label>
+          <label class='wide'>Optional Attachment
+            <input name='attachment' type='file'>
+            ${editing?.attachmentFileId?`<small>Current attachment: ${esc(editing.attachmentName||'Attached file')}</small>`:''}
+          </label>
+          <div class='wide' style='display:flex;gap:8px;flex-wrap:wrap'>
+            <button class='primary' type='submit'>${editing?'Save Changes':'Publish'}</button>
+            ${editing?`<button class='secondary' type='button' id='aaCancelEdit'>Cancel</button>`:''}
+          </div>
+        </form>
+      </div>
+
+      <div class='panel'>
+        <div class='panel-title'><h3>${activeTab==='Assignment'?'Home Assignments':activeTab==='Post'?'General Posts / Notices':'School Announcements'}</h3><span>${filtered.length} item${filtered.length===1?'':'s'}</span></div>
+        <div style='overflow:auto'>
+          <table>
+            <thead><tr><th>Title</th><th>Type</th><th>Audience / Class</th><th>Subject</th><th>Date Posted</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${filtered.map(r=>`<tr>
+                <td><b>${esc(r.title)}</b>${r.message?`<br><small>${esc(String(r.message).slice(0,90))}${String(r.message).length>90?'…':''}</small>`:''}${r.attachmentFileId?`<br><small>📎 ${esc(r.attachmentName||'Attachment')}</small>`:''}</td>
+                <td>${esc(r.type)}</td>
+                <td>${esc(r.type==='Assignment'?(r.className||'—'):(r.targetAudience==='Specific Class'?(r.className||'Specific Class'):(r.targetAudience||'Entire School')))}</td>
+                <td>${esc(r.subject||'—')}</td>
+                <td>${esc(r.datePosted||'—')}</td>
+                <td>${esc(r.dueDate||'—')}</td>
+                <td><span class='status'>${esc(r.status||'Published')}</span></td>
+                <td><button class='secondary aa-edit' data-id='${esc(r.id)}' type='button'>Edit</button> <button class='danger aa-delete' data-id='${esc(r.id)}' type='button'>Delete</button></td>
+              </tr>`).join('')||`<tr><td colspan='8'><div class='empty'>No ${activeTab==='Assignment'?'home assignments':activeTab==='Post'?'posts':'announcements'} have been created yet.</div></td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  const setNewType=(type)=>{window.afisapAnnouncementsEditingId="";window.afisapAnnouncementsNewType=type;window.afisapAnnouncementsTab=type;announcementsAssignments();};
+  $('#newAnnouncementBtn').onclick=()=>setNewType('Announcement');
+  $('#newAssignmentBtn').onclick=()=>setNewType('Assignment');
+  $('#newPostBtn').onclick=()=>setNewType('Post');
+  document.querySelectorAll('[data-aa-tab]').forEach(btn=>btn.onclick=()=>{window.afisapAnnouncementsTab=btn.dataset.aaTab;window.afisapAnnouncementsNewType=btn.dataset.aaTab;window.afisapAnnouncementsEditingId="";announcementsAssignments();});
+  $('#aaTargetAudience')?.addEventListener('change',e=>{const wrap=$('#aaClassWrap');if(wrap)wrap.style.display=e.target.value==='Specific Class'?'block':'none';});
+  $('#aaCancelEdit')?.addEventListener('click',()=>{window.afisapAnnouncementsEditingId="";announcementsAssignments();});
+
+  document.querySelectorAll('.aa-edit').forEach(btn=>btn.onclick=()=>{window.afisapAnnouncementsEditingId=btn.dataset.id;const item=records.find(x=>String(x.id)===String(btn.dataset.id));if(item){window.afisapAnnouncementsTab=item.type;window.afisapAnnouncementsNewType=item.type;}announcementsAssignments();});
+  document.querySelectorAll('.aa-delete').forEach(btn=>btn.onclick=async()=>{
+    const item=records.find(x=>String(x.id)===String(btn.dataset.id));
+    if(!item || !confirm('Delete this '+String(item.type||'item').toLowerCase()+'?')) return;
+    const result=await afisapCloudPost({action:'delete',sheet:'Announcements & Assignments',idField:'Announcement ID',idValue:item.id});
+    if(!result?.success){alert('Delete failed: '+String(result?.error||'Cloud database error.'));return;}
+    d.announcementsAssignments=records.filter(x=>String(x.id)!==String(item.id));
+    persist();
+    announcementsAssignments();
+  });
+
+  $('#aaForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const form=new FormData(e.target);
+    const existingId=String(form.get('recordId')||'').trim();
+    const type=String(form.get('type')||'Announcement').trim();
+    const targetAudience=type==='Assignment'?'Specific Class':String(form.get('targetAudience')||'Entire School').trim();
+    const className=String(form.get('className')||'').trim();
+    if((type==='Assignment'||targetAudience==='Specific Class')&&!className){alert('Please select the target class.');return;}
+
+    const id=existingId||('AA-'+Date.now()+'-'+Math.floor(Math.random()*10000));
+    const old=records.find(x=>String(x.id)===existingId)||{};
+    let attachmentFileId=String(old.attachmentFileId||'');
+    let attachmentName=String(old.attachmentName||'');
+    const file=form.get('attachment');
+    const submit=e.target.querySelector('button[type="submit"]');
+    const formButtons=e.target.querySelectorAll('button');
+    const originalSubmitText=existingId?'Save Changes':'Publish';
+    const setSubmitProgress=(label,percent)=>{
+      if(!submit) return;
+      submit.disabled=true;
+      submit.innerHTML=`<span class="afisap-publish-spinner" aria-hidden="true"></span> ${esc(label)}${percent!==null?` <span style="opacity:.9">(${percent}%)</span>`:''}`;
+    };
+    if(submit) setSubmitProgress(existingId?'Saving...':'Publishing...',0);
+    formButtons.forEach(btn=>{ if(btn!==submit) btn.disabled=true; });
+
+    try{
+      // IMPORTANT: Save the announcement/assignment to Google Sheets FIRST.
+      // A Drive attachment must never block or prevent the main record from
+      // being created. Large base64 uploads can take much longer than a Sheet
+      // write and may fail independently.
+      const item={
+        id,
+        type,
+        title:String(form.get('title')||'').trim(),
+        message:String(form.get('message')||'').trim(),
+        className,
+        subject:type==='Assignment'?String(form.get('subject')||'').trim():'',
+        targetAudience,
+        datePosted:String(form.get('datePosted')||'').trim(),
+        dueDate:type==='Assignment'?String(form.get('dueDate')||'').trim():'',
+        attachmentFileId,
+        attachmentName,
+        status:String(form.get('status')||'Published').trim(),
+        createdBy:String(old.createdBy||'Administrator'),
+        academicYear:String(d.school?.year||'').trim(),
+        term:String(d.school?.term||'').trim(),
+        lastUpdated:new Date().toISOString()
+      };
+
+      const payload={action:existingId?'update':'create',sheet:'Announcements & Assignments',data:afisapAnnouncementRecordToSheet(item)};
+      if(existingId){payload.idField='Announcement ID';payload.idValue=id;}
+
+      setSubmitProgress(existingId?'Updating Google Sheet...':'Saving to Google Sheet...',file && file.size ? 30 : 45);
+      const result=await afisapCloudPost(payload);
+      if(!result?.success) throw new Error(String(result?.error||'Google Sheets did not confirm the save.'));
+
+      // Update the local state immediately after the Sheet confirms.
+      // This guarantees that the main record is preserved even if Drive is slow.
+      const next=records.filter(x=>String(x.id)!==id);
+      next.push(item);
+      d.announcementsAssignments=next;
+      persist();
+
+      // Upload the optional attachment only AFTER the Sheet record exists.
+      // If Drive fails, keep the Sheet record and report the attachment issue
+      // separately instead of treating the whole publication as failed.
+      let attachmentWarning='';
+      if(file && file.size){
+        try{
+          setSubmitProgress('Uploading attachment...',60);
+          const uploaded=await afisapUploadAnnouncementAttachment(file,id);
+          attachmentFileId=uploaded.fileId;
+          attachmentName=uploaded.fileName;
+
+          const attachmentItem=Object.assign({},item,{
+            attachmentFileId,
+            attachmentName,
+            lastUpdated:new Date().toISOString()
+          });
+          const attachmentPayload={
+            action:'update',
+            sheet:'Announcements & Assignments',
+            data:afisapAnnouncementRecordToSheet(attachmentItem),
+            idField:'Announcement ID',
+            idValue:id
+          };
+          setSubmitProgress('Confirming attachment...',85);
+          const attachmentSave=await afisapCloudPost(attachmentPayload);
+          if(!attachmentSave?.success){
+            throw new Error(String(attachmentSave?.error||'Google Sheets did not confirm the attachment reference.'));
+          }
+
+          d.announcementsAssignments=d.announcementsAssignments.map(x=>
+            String(x.id)===id ? attachmentItem : x
+          );
+          persist();
+        }catch(attachmentError){
+          console.error('AFISAP announcement attachment save failed:',attachmentError);
+          attachmentWarning='\\n\\nThe announcement was saved to Google Sheets, but the attachment could not be confirmed in Google Drive. You can edit the item and try the attachment again.';
+        }
+      }
+
+      setSubmitProgress(attachmentWarning?'Saved to Google Sheets (attachment issue)':'Published successfully',100);
+      window.afisapAnnouncementsEditingId="";
+      window.afisapAnnouncementsNewType=type;
+      window.afisapAnnouncementsTab=type;
+      announcementsAssignments();
+      if(attachmentWarning) alert('Saved successfully to Google Sheets.'+attachmentWarning);
+    }catch(error){
+      console.error('AFISAP Announcements & Assignments save failed:',error);
+      alert('Could not save this item.\n\n'+String(error?.message||error));
+      if(submit){submit.disabled=false;submit.textContent=originalSubmitText;}
+      formButtons.forEach(btn=>{ if(btn!==submit) btn.disabled=false; });
+    }
+  });
+}
 
 function fees(){
 
@@ -3410,7 +5074,7 @@ function fees(){
 
     panel.querySelector("#cancelFeeEdit").addEventListener("click",()=>panel.remove());
 
-    form.addEventListener("submit",e=>{
+    form.addEventListener("submit",async e=>{
       e.preventDefault();
       const item=String(new FormData(form).get("feeItem")||"").trim();
       const due=Number(dueInput.value||0);
@@ -3421,24 +5085,31 @@ function fees(){
       if(!Number.isFinite(paid)||paid<0){alert("Please enter a valid Amount Paid.");return;}
       if(paid>due){alert("Amount Paid cannot be greater than Amount Due.");return;}
 
-      r.feeItem=item;
-      r.amountDue=due;
-      r.amountPaid=paid;
-      save();
+      const student=(d.students||[]).find(s=>{
+        const localId=String(s.id||"").trim();
+        const stableId=String(s.sid||s.studentId||s["Student ID"]||"").trim();
+        return localId===String(r.studentId||"").trim() || stableId===String(r.studentSid||r.studentId||"").trim();
+      })||{};
+      const submitButton=form.querySelector('button[type="submit"]');
+      const originalSubmitText=submitButton?submitButton.textContent:'Save Changes';
+      let saveStatus=form.querySelector('.afisap-fee-save-status');
+      if(!saveStatus){saveStatus=document.createElement('div');saveStatus.className='afisap-fee-save-status';form.appendChild(saveStatus);}
+      saveStatus.innerHTML='<span class="afisap-fee-spinner" aria-hidden="true"></span><span>Saving Changes...</span>';
+      if(submitButton){submitButton.disabled=true;submitButton.textContent='Saving Changes...';}
+      const finishFeeSaveState=(message,isError=false)=>{if(saveStatus){saveStatus.textContent=message;saveStatus.style.color=isError?'#a51d1d':''}if(submitButton){submitButton.disabled=false;submitButton.textContent=originalSubmitText}};
 
-      const student=(d.students||[]).find(s=>String(s.id)===String(r.studentId))||{};
-      const cloudRecord={
+    const cloudRecord={
         "Fee ID":String(r.id),
         "Student ID":String(student.sid||student.studentId||student["Student ID"]||student.id||r.studentId||""),
         "Admission Number":String(student.admissionNumber||student["Admission Number"]||""),
         "Student Name":String(student.name||student.fullName||""),
-        "Fee Item":String(r.feeItem||""),
-        "Amount Due":Number(r.amountDue||0),
-        "Amount Paid":Number(r.amountPaid||0),
-        "Balance":Math.max(0,Number(r.amountDue||0)-Number(r.amountPaid||0)),
+        "Fee Item":item,
+        "Amount Due":due,
+        "Amount Paid":paid,
+        "Balance":Math.max(0,due-paid),
         "Date":String(r.date||""),
-        "Academic Year":String((d.school&&d.school.year)||""),
-        "Term":String((d.school&&d.school.term)||""),
+        "Academic Year":String(r.academicYear||(d.school&&d.school.year)||""),
+        "Term":String(r.term||(d.school&&d.school.term)||""),
         "Last Updated":new Date().toISOString()
       };
 
@@ -3447,6 +5118,7 @@ function fees(){
         sheet:"Fees",
         idField:"Fee ID",
         idValue:String(r.id),
+        sheetRow:Number(r.sheetRow||0),
         data:cloudRecord
       }).then(async result=>{
         if(!result || result.success!==true){
@@ -3462,83 +5134,69 @@ function fees(){
               data:cloudRecord
             });
             if(created && created.success===true){
-              nav("fees");
+              const refreshed=await afisapSyncAllFromCloud();
+              if(!refreshed||refreshed.success!==true){finishFeeSaveState('Saved, but refresh failed.',true);alert('Google Sheets confirmed the save, but the Fees page could not refresh. Please refresh the page.');return;}
+              finishFeeSaveState('Fee record saved successfully.');nav("fees");
               alert("Student fee record was saved to Google Sheets successfully.");
               return;
             }
           }
 
           console.error("Fee update cloud sync failed:",result);
-          alert(
-            "Fee was updated locally, but Google Sheets was not updated."+
-            (result&&result.error?"\n\nReason: "+result.error:"")
-          );
+          finishFeeSaveState('Unable to save changes.',true);
+          alert("Fee was not updated because Google Sheets did not confirm the change."+(result&&result.error?"\n\nReason: "+result.error:""));
           return;
         }
-        nav("fees");
-        alert("Student fee record updated successfully in Google Sheets.");
+        const refreshed=await afisapSyncAllFromCloud();
+        if(!refreshed||refreshed.success!==true){finishFeeSaveState('Updated, but refresh failed.',true);alert('Google Sheets confirmed the update, but the Fees page could not refresh. Please refresh the page.');return;}
+        finishFeeSaveState('Fee record updated successfully.');nav("fees");
+        alert("Fee record updated successfully.");
       }).catch(async error=>{
         console.error("Fee update cloud sync error:",error);
-        alert("Fee was updated locally, but Google Sheets could not be reached.");
+        finishFeeSaveState('Unable to save changes.',true);
+        alert("Fee was not updated because Google Sheets could not be reached.");
       });
     });
   }
 
   function editConfiguredFeeItem(id){
-    const items=Array.isArray(d.fees)?d.fees:[];
-    const item=items.find(x=>String(x.id||x.name)===String(id));
+    const items=Array.isArray(d.fees)?d.fees:[],item=items.find(x=>String(x.id||x.name)===String(id));
     if(!item){alert("Fee item not found.");return;}
-
-    const existing=document.getElementById("configuredFeeEditPanel");
-    if(existing) existing.remove();
-
-    const panel=document.createElement("div");
-    panel.id="configuredFeeEditPanel";
-    panel.className="panel";
+    const existing=document.getElementById("configuredFeeEditPanel");if(existing)existing.remove();
+    const panel=document.createElement("div");panel.id="configuredFeeEditPanel";panel.className="panel";
     panel.style.cssText="margin:18px 0;border:2px solid #ddd;padding:18px;background:#fff;";
-    panel.innerHTML=`
-      <div class="panel-title">
-        <h3>Edit Fee Item</h3>
-        <button type="button" class="danger" id="cancelConfiguredFeeEdit">Cancel</button>
-      </div>
+    panel.innerHTML=`<div class="panel-title"><h3>Edit Fee Item</h3><button type="button" class="danger" id="cancelConfiguredFeeEdit">Cancel</button></div>
       <form id="configuredFeeEditForm" class="form" style="margin-top:12px">
-        <label>Fee Item
-          <input name="name" type="text" value="${esc(item.name||"")}" required>
-        </label>
-        <label>Amount (GHS)
-          <input name="amount" type="number" min="0" step=".01" value="${Number(item.amount||0).toFixed(2)}" required>
-        </label>
-        <div class="wide"><button type="submit" class="primary">Save Changes</button></div>
-      </form>`;
-    const firstPanel=document.querySelector("#app .grid");
-    if(firstPanel) firstPanel.parentNode.insertBefore(panel,firstPanel);
-    else document.getElementById("app").prepend(panel);
-
+        <label>Fee Item<input name="name" type="text" value="${esc(item.name||"")}" required></label>
+        <label>Amount (GHS)<input name="amount" type="number" min="0" step=".01" value="${Number(item.amount||0).toFixed(2)}" required></label>
+        <div class="wide"><button type="submit" class="primary">Save Changes</button></div></form>`;
+    const firstPanel=document.querySelector("#app .grid");if(firstPanel)firstPanel.parentNode.insertBefore(panel,firstPanel);else document.getElementById("app").prepend(panel);
     panel.querySelector("#cancelConfiguredFeeEdit").addEventListener("click",()=>panel.remove());
-    panel.querySelector("#configuredFeeEditForm").addEventListener("submit",e=>{
-      e.preventDefault();
-      const f=new FormData(e.target);
-      const name=String(f.get("name")||"").trim();
-      const amount=Number(f.get("amount")||0);
-      if(!name){alert("Please enter a Fee Item.");return;}
-      if(!Number.isFinite(amount)||amount<0){alert("Please enter a valid Amount.");return;}
-
-      const duplicate=items.some(x=>String(x.id||x.name)!==String(item.id||item.name) &&
-        String(x.name||"").trim().toLowerCase()===name.toLowerCase());
+    panel.querySelector("#configuredFeeEditForm").addEventListener("submit",async e=>{
+      e.preventDefault();const f=new FormData(e.target),name=String(f.get("name")||"").trim(),amount=Number(f.get("amount")||0);
+      if(!name){alert("Please enter a Fee Item.");return;}if(!Number.isFinite(amount)||amount<0){alert("Please enter a valid Amount.");return;}
+      const duplicate=items.some(x=>String(x.id||x.name)!==String(item.id||item.name)&&String(x.name||"").trim().toLowerCase()===name.toLowerCase());
       if(duplicate){alert("That fee item already exists.");return;}
-
-      const oldName=item.name;
-      item.name=name;
-      item.amount=amount;
-      (d.feeRecords||[]).forEach(r=>{
-        if(String(r.feeItem||"").trim().toLowerCase()===String(oldName||"").trim().toLowerCase()){
-          r.feeItem=name;
-        }
-      });
-
-      save();
-      nav("fees");
-      alert("Fee item updated successfully.");
+      const btn=e.target.querySelector('button[type="submit"]'),oldText=btn?.textContent||'Save Changes';
+      let status=e.target.querySelector('.afisap-fee-save-status');if(!status){status=document.createElement('div');status.className='afisap-fee-save-status';e.target.appendChild(status);}
+      status.innerHTML='<span class="afisap-fee-spinner" aria-hidden="true"></span><span>Saving Changes...</span>';
+      if(btn){btn.disabled=true;btn.textContent='Saving Changes...';}
+      let feeId=String(item.id||"").trim(),result=null;
+      if(/^FEE_ITEM\|/i.test(feeId)){
+        result=await afisapCloudPost({action:'update',sheet:'Fees',idField:'Fee ID',idValue:feeId,sheetRow:Number(item.sheetRow||0),data:{
+          'Fee ID':feeId,'Fee Item':name,'Amount Due':amount,'Last Updated':new Date().toISOString()
+        }}).catch(()=>null);
+      }else{
+        feeId='FEE_ITEM|'+encodeURIComponent(name)+'|'+Date.now();
+        result=await afisapCloudPost({action:'create',sheet:'Fees',data:{
+          'Fee ID':feeId,'Student ID':'','Student Name':'','Fee Item':name,'Amount Due':amount,'Amount Paid':0,
+          'Balance':amount,'Date':'','Academic Year':'','Term':'','Date Created':new Date().toISOString(),'Last Updated':new Date().toISOString()
+        }}).catch(()=>null);
+      }
+      if(!result||result.success!==true){status.textContent='Unable to save changes.';status.style.color='#a51d1d';if(btn){btn.disabled=false;btn.textContent=oldText;}alert("Fee item was not updated in Google Sheets."+(result?.error?"\n\nReason: "+result.error:""));return;}
+      const refreshed=await afisapSyncAllFromCloud();
+      if(!refreshed||refreshed.success!==true){status.textContent='Updated, but refresh failed.';status.style.color='#a51d1d';if(btn){btn.disabled=false;btn.textContent=oldText;}alert('Google Sheets confirmed the update, but Fee Items could not refresh.');return;}
+      status.textContent='Fee item updated successfully.';nav("fees");alert("Fee item updated successfully in Google Sheets.");
     });
   }
 
@@ -3546,14 +5204,47 @@ function fees(){
   window.editConfiguredFeeItem=editConfiguredFeeItem;
 
 
-  const studentOptions=(d.students||[]).map(s=>`<option value='${s.id}'>${esc((s.name || [s.firstName,s.middleName,s.surname].filter(Boolean).join(' ')))} — ${esc(s.class)}</option>`).join('');
-  const itemOptions=(d.fees||[]).map(f=>`<option value='${esc(f.name)}'>${esc(f.name)} — GHS ${Number(f.amount||0).toFixed(2)}</option>`).join('');
-  const rows=(d.feeRecords||[]).map(r=>{
+  const studentOptions=(d.students||[]).map(s=>`<option value='${esc(s.id)}'>${esc((s.name || [s.firstName,s.middleName,s.surname,s.otherName].filter(Boolean).join(' ')))} — ${esc(s.class||'')}</option>`).join('');
+
+  // Official school fee names are available for assignment even if the
+  // administrator has not manually configured them first. Configured items
+  // still take priority for their custom amount.
+  const officialFixedFeeAmounts={
+    'Admission Fee':200,
+    'Tuition Fee':400,
+    'School T-Shirt':80,
+    'Sanitary Fee':50,
+    'First Aid Fee':50,
+    'PTA Dues':50,
+    'Textbook Fee':550
+  };
+  const officialFeeNames=[
+    'Admission Fee','Tuition Fee','School Uniform','School T-Shirt',
+    'Sanitary Fee','First Aid Fee','PTA Dues','Daily Canteen',
+    'Daily T&T (Transport)','Textbook Fee'
+  ];
+  const configuredFeeMap=new Map((d.fees||[]).map(f=>[String(f.name||'').trim().toLowerCase(),f]));
+  const feeNameList=[...new Set([
+    ...officialFeeNames,
+    ...(d.fees||[]).map(f=>String(f.name||'').trim()).filter(Boolean)
+  ])];
+  const itemOptions=feeNameList.map(name=>{
+    const configured=configuredFeeMap.get(name.toLowerCase());
+    const amount=configured ? Number(configured.amount||0) : Number(officialFixedFeeAmounts[name]||0);
+    const suffix=amount>0 ? ` — GHS ${amount.toFixed(2)}` : '';
+    return `<option value='${esc(name)}' data-amount='${amount}'>${esc(name)}${esc(suffix)}</option>`;
+  }).join('');
+  const feeRows=(d.feeRecords||[]).map(r=>{
     const s=(d.students||[]).find(x=>String(x.id)===String(r.studentId));
     const due=Number(r.amountDue||0),paid=Number(r.amountPaid||0),bal=Math.max(0,due-paid);
     const status=bal===0 && paid>0?'Paid':paid>0?'Part Paid':'Due';
-    return `<tr><td>${s?.photo?`<img src="${s.photo}" alt="Student Photo" style="width:46px;height:46px;border-radius:50%;object-fit:cover">`:`<div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f1f1f1">👤</div>`}</td><td>${esc(s?.name||[s?.surname,s?.firstName,s?.middleName,s?.otherName].filter(Boolean).join(' ')||'Unknown')}</td><td>${esc(r.feeItem||'Fees')}</td><td>GHS ${due.toFixed(2)}</td><td>GHS ${paid.toFixed(2)}</td><td>GHS ${bal.toFixed(2)}</td><td><span class='status ${status.toLowerCase().replace(' ','-')}'>${status}</span></td><td><button class='secondary' onclick='window.editFeeRecord("${r.id}")'>Edit</button><button class='secondary' onclick='window.printStudentFeePreview("${r.id}")'>Print Preview</button> <button class='danger' onclick='del("feeRecords","${r.id}")'>Delete</button></td></tr>`;
+    return `<tr><td>${s?.photo?`<img src="${s.photo}" alt="Student Photo" style="width:46px;height:46px;border-radius:50%;object-fit:cover">`:`<div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f1f1f1">👤</div>`}</td><td>${esc(s?.name||[s?.surname,s?.firstName,s?.middleName,s?.otherName].filter(Boolean).join(' ')||'Unknown')}</td><td>${esc(r.feeItem||'Fees')}</td><td>GHS ${due.toFixed(2)}</td><td>GHS ${paid.toFixed(2)}</td><td>GHS ${bal.toFixed(2)}</td><td><span class='status ${status.toLowerCase().replace(' ','-')}'>${status}</span></td><td><button class='secondary' onclick='window.editFeeRecord("${r.id}")'>Edit</button><button class='secondary' onclick='window.printStudentFeePreview("${r.id}")'>Print Preview</button> <button class='danger' data-fee-delete-type='feeRecords' data-fee-delete-id='${esc(r.id)}' onclick='del("feeRecords","${r.id}")'>Delete</button></td></tr>`;
   }).join('');
+
+  const classOptions=[...new Set((d.students||[]).map(s=>String(s.class||s.className||s.classLevel||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b))
+    .map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
   $('#app').innerHTML=`<div class='grid'>
     <div class='panel'>
       <div class='panel-title'><h3>Fee Items</h3><span>${d.fees.length} configured</span></div>
@@ -3570,6 +5261,7 @@ function fees(){
             <option value='PTA Dues'>PTA Dues</option>
             <option value='Daily Canteen'>Daily Canteen</option>
             <option value='Daily T&amp;T (Transport)'>Daily T&amp;T (Transport)</option>
+            <option value='Textbook Fee'>Textbook Fee</option>
             <option value='Other'>Other</option>
           </select>
         </label>
@@ -3582,21 +5274,61 @@ function fees(){
         <div class='wide'><button type='submit' class='primary'>Save Fee Item</button></div>
       </form>
       <div class='table' style='margin-top:15px'><table><tr><th>Fee Item</th><th>Amount</th><th>Actions</th></tr>
-      ${d.fees.map(f=>`<tr><td>${esc(f.name)}</td><td>GHS ${Number(f.amount||0).toFixed(2)}</td><td><button class='secondary' onclick='window.editConfiguredFeeItem("${f.id||f.name}")'>Edit</button> <button class='danger' onclick='del("fees","${f.id||f.name}")'>Delete</button></td></tr>`).join('') || '<tr><td colspan="3" class="empty">No fee items have been added.</td></tr>'}</table></div>
+      ${d.fees.map(f=>`<tr><td>${esc(f.name)}</td><td>GHS ${Number(f.amount||0).toFixed(2)}</td><td><button class='secondary' onclick='window.editConfiguredFeeItem("${f.id||f.name}")'>Edit</button> <button class='danger' data-fee-delete-type='fees' data-fee-delete-id='${esc(f.id||f.name)}' onclick='del("fees","${f.id||f.name}")'>Delete</button></td></tr>`).join('') || '<tr><td colspan="3" class="empty">No fee items have been added.</td></tr>'}</table></div>
     </div>
+
     <div class='panel'>
-      <div class='panel-title'><h3>Student Fee Payment</h3><span>Record payment / balance</span></div>
-      <form id='feeRecordForm' class='form'>
-        <label>Student<select name='studentId' required><option value=''>Select Student</option>${studentOptions}</select></label>
-        <label>Fee Item<select name='feeItem' required><option value=''>Select Fee Item</option>${itemOptions}</select></label>
-        <label>Amount Due (GHS)<input name='due' type='number' min='0' step='.01' required></label>
-        <label>Amount Paid (GHS)<input name='paid' type='number' min='0' step='.01' required></label>
-        <div class='wide'><button class='primary'>Save Fee Record</button></div>
+      <div class='panel-title'><h3>Bulk Fee Assignment</h3><span>Assign fees without entering students one by one</span></div>
+      <p class='muted'>Set a standard amount once, choose a class or the whole school, review the student list, and apply the fee. Every student receives an individual fee account record so their own Due, Paid and Balance can appear automatically on report cards. You only change the amount for students who have a special fee arrangement.</p>
+      <form id='bulkFeeAssignmentForm' class='form'>
+        <label>Apply To
+          <select name='scope' id='bulkFeeScope' required>
+            <option value='class'>A Whole Class</option>
+            <option value='all'>All Students</option>
+          </select>
+        </label>
+        <label id='bulkFeeClassLabel'>Class
+          <select name='className' id='bulkFeeClass' required>
+            <option value=''>Select Class</option>${classOptions}
+          </select>
+        </label>
+        <label>Fee Item
+          <select name='feeItem' id='bulkFeeItem' required>
+            <option value=''>Select Fee Item</option>${itemOptions}
+          </select>
+        </label>
+        <label>Standard Amount Due Per Student (GHS)
+          <input name='amountDue' id='bulkFeeAmount' type='number' min='0' step='.01' required>
+          <small id='bulkFeeAmountHelp' class='upload-help'>This amount is applied to everyone first. You can adjust exceptions on the review screen.</small>
+        </label>
+        <label>Academic Year
+          <input name='academicYear' id='bulkFeeYear' value='${esc(d.school?.year||'')}' placeholder='e.g. 2026/2027' required>
+        </label>
+        <label>Term
+          <select name='term' id='bulkFeeTerm' required>
+            <option>Term 1</option><option>Term 2</option><option>Term 3</option>
+          </select>
+        </label>
+        <label class='wide' style='display:flex;align-items:center;gap:10px'>
+          <input type='checkbox' name='skipExisting' id='bulkFeeSkipExisting' checked style='width:auto'>
+          <span>Skip students who already have this fee for the selected year and term</span>
+        </label>
+        <div class='wide'>
+          <button class='primary' type='submit' id='bulkFeeApplyBtn'>Review Students &amp; Apply Fee</button>
+        </div>
       </form>
-      <p class='muted'>Payments received and outstanding balances automatically appear in the dashboard notification bar.</p>
+      <div id='bulkFeeProgress' class='report-help-text' style='display:none;margin-top:12px'></div>
     </div>
-  </div>
-  <div class='panel' style='margin-top:18px'><div class='panel-title'><h3>Student Fee Records</h3><span>Recent</span></div><div class='table'><table><tr><th>Passport Photo</th><th>Student</th><th>Fee Item</th><th>Due</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr>${rows||'<tr><td colspan="8" class="empty">No student fee records yet.</td></tr>'}</table></div></div>`;
+
+
+
+  <div class='panel' style='margin-top:18px'><div class='panel-title'><h3>Student Fee Records</h3><span>Recent</span></div><div class='table'><table><tr><th>Passport Photo</th><th>Student</th><th>Fee Item</th><th>Due</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr>${feeRows||'<tr><td colspan="8" class="empty">No student fee records yet.</td></tr>'}</table></div></div>
+  </div>`;
+
+
+
+
+
   const configuredFeeForm=$('#configuredFeeItemForm');
   const configuredFeeSelect=$('#configuredFeeItem');
   const otherFeeLabel=$('#otherFeeItemLabel');
@@ -3609,151 +5341,399 @@ function fees(){
       otherFeeInput.required=isOther;
       if(!isOther) otherFeeInput.value='';
     }
+    const chosen=(d.fees||[]).find(f=>String(f.name)===String(configuredFeeSelect.value));
+    const amountInput=configuredFeeForm?.querySelector("[name=amount]");
+    if(chosen && amountInput) amountInput.value=Number(chosen.amount||0).toFixed(2);
   });
 
-  configuredFeeForm?.addEventListener('submit',e=>{
+  configuredFeeForm?.addEventListener('submit',async e=>{
     e.preventDefault();
-    const f=new FormData(configuredFeeForm);
-    const selected=String(f.get('name')||'').trim();
-    const other=String(f.get('otherName')||'').trim();
-    const name=selected==='Other'?other:selected;
-    const amount=Number(f.get('amount')||0);
+    const f=new FormData(configuredFeeForm),selected=String(f.get('name')||'').trim(),other=String(f.get('otherName')||'').trim();
+    const name=selected==='Other'?other:selected,amount=Number(f.get('amount')||0);
     if(!name){alert('Please select a fee item or type the Other fee item.');return;}
-    if(d.fees.some(x=>String(x.name).toLowerCase()===name.toLowerCase())){
-      alert('That fee item has already been configured.');
+    if(d.fees.some(x=>String(x.name).toLowerCase()===name.toLowerCase())){alert('That fee item has already been configured.');return;}
+    const btn=configuredFeeForm.querySelector('button[type="submit"]'),oldText=btn?.textContent||'Save Fee Item';
+    if(btn){btn.disabled=true;btn.textContent='Saving Fee Item...';}
+    let itemStatus=configuredFeeForm.querySelector('.afisap-fee-save-status');if(!itemStatus){itemStatus=document.createElement('div');itemStatus.className='afisap-fee-save-status';configuredFeeForm.appendChild(itemStatus);}
+    itemStatus.innerHTML='<span class="afisap-fee-spinner" aria-hidden="true"></span><span>Saving Fee Item...</span>';
+    const feeId='FEE_ITEM|'+encodeURIComponent(name)+'|'+Date.now(),now=new Date().toISOString();
+    const backendCheck=await afisapVerifyLiveFeesBackend();
+    if(!backendCheck.success){if(btn){btn.disabled=false;btn.textContent=oldText;}alert(backendCheck.error);return;}
+    const result=await afisapCloudPost({action:'create',sheet:'Fees',data:{
+      'Fee ID':feeId,'Student ID':'','Student Name':'','Fee Item':name,'Amount Due':amount,'Amount Paid':0,
+      'Balance':amount,'Date':'','Academic Year':'','Term':'','Date Created':now,'Last Updated':now
+    }}).catch(()=>null);
+    if(!result||result.success!==true){
+      if(btn){btn.disabled=false;btn.textContent=oldText;}
+      itemStatus.textContent='Unable to save fee item.';itemStatus.style.color='#a51d1d';
+      alert('Fee item was not saved to Google Sheets.'+(result?.error?'\n\nReason: '+result.error:''));
       return;
     }
-    d.fees.push({id:Date.now(),name,amount});
-    save();
+    const saved=result.record||{};
+    const localItem={
+      id:String(saved['Fee ID']||feeId),
+      name:String(saved['Fee Item']||name),
+      amount:Number(saved['Amount Due']??amount)
+    };
+    d.fees=[...(d.fees||[]).filter(x=>String(x.name||'').toLowerCase()!==name.toLowerCase()),localItem];
+    persist();
+    if(btn){btn.disabled=false;btn.textContent=oldText;}
+    itemStatus.textContent='Fee item saved successfully.';
     nav('fees');
-    alert('Fee item added.');
+    alert('Fee item saved successfully to Google Sheets.');
   });
 
-  const form=$('#feeRecordForm');
-  form?.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const f=new FormData(form), due=Number(f.get('due')||0), paid=Number(f.get('paid')||0);
-    const studentId=String(f.get('studentId')||'').trim();
-    const feeItem=String(f.get('feeItem')||'').trim();
+  const bulkScope=$('#bulkFeeScope');
+  const bulkClass=$('#bulkFeeClass');
+  const bulkClassLabel=$('#bulkFeeClassLabel');
+  const bulkItem=$('#bulkFeeItem');
+  const bulkAmount=$('#bulkFeeAmount');
+  const bulkTerm=$('#bulkFeeTerm');
+  const bulkProgress=$('#bulkFeeProgress');
+  const bulkButton=$('#bulkFeeApplyBtn');
 
-    if(!studentId){alert('Please select a student.');return;}
-    if(!feeItem){alert('Please select a fee item.');return;}
-    if(paid>due){alert('Amount paid cannot be greater than amount due.');return;}
+  const refreshBulkFeeScope=()=>{
+    const all=bulkScope?.value==='all';
+    if(bulkClassLabel) bulkClassLabel.style.display=all?'none':'';
+    if(bulkClass) bulkClass.disabled=all;
+    if(bulkClass) bulkClass.required=!all;
+  };
+  bulkScope?.addEventListener('change',refreshBulkFeeScope);
+  refreshBulkFeeScope();
 
-    const feeId=String(Date.now());
-    const date=new Date().toISOString().slice(0,10);
-    const student=d.students.find(s=>{
-      const ids=[s.id,s.sid,s.studentId,s["Student ID"]]
-        .filter(v=>v!==undefined&&v!==null&&String(v).trim()!=="")
-        .map(String);
-      return ids.includes(studentId);
-    })||{};
-
-    const localRecord={
-      id:feeId,
-      studentId:studentId,
-      feeItem:feeItem,
-      amountDue:due,
-      amountPaid:paid,
-      date:date
-    };
-
-    d.feeRecords.push(localRecord);
-    save();
-
-    const cloudRecord={
-      "Fee ID":feeId,
-      "Student ID":String(student.sid||student.studentId||student["Student ID"]||student.id||studentId),
-      "Admission Number":String(student.admissionNumber||student["Admission Number"]||""),
-      "Student Name":String(student.name||student.fullName||""),
-      "Fee Item":feeItem,
-      "Amount Due":due,
-      "Amount Paid":paid,
-      "Balance":Math.max(0,due-paid),
-      "Date":date,
-      "Academic Year":String((d.school&&d.school.year)||""),
-      "Term":String((d.school&&d.school.term)||""),
-      "Date Created":new Date().toISOString(),
-      "Last Updated":new Date().toISOString()
-    };
-
-    try{
-      let result=await afisapCloudPost({
-        action:"create",
-        sheet:"Fees",
-        data:cloudRecord
-      });
-
-      /*
-       * Google Apps Script can occasionally return a negative/late response
-       * even when the append has already reached the sheet. Verify the actual
-       * Fees sheet before rolling back the local record.
-       */
-      if(!result || result.success!==true){
-        try{
-          const verify=await afisapCloudJsonp({
-            action:"search",
-            sheet:"Fees",
-            field:"Fee ID",
-            value:feeId
-          });
-
-          if(verify && verify.success===true &&
-             Array.isArray(verify.records) && verify.records.length){
-            result={success:true,verified:true,message:"Fee record verified in Google Sheets."};
-          }
-        }catch(verifyError){
-          console.warn("AFISAP: fee cloud verification failed:",verifyError);
-        }
+  const getOfficialBulkAmount=(feeItem,className)=>{
+    const name=String(feeItem||'').trim();
+    const configured=(d.fees||[]).find(f=>String(f.name||'').trim().toLowerCase()===name.toLowerCase());
+    if(configured && Number.isFinite(Number(configured.amount))) {
+      return {amount:Number(configured.amount),source:'Configured fee amount'};
+    }
+    if(Object.prototype.hasOwnProperty.call(officialFixedFeeAmounts,name)) {
+      return {amount:Number(officialFixedFeeAmounts[name]),source:'Official school fee reference'};
+    }
+    if(name==='Textbook Fee' && className) {
+      const textbookClasses=['BS 1','BS 2','BS 3','BS 4','BS 5','BS 6','NS 1','NS 2','KG 1','KG 2'];
+      if(textbookClasses.includes(String(className).trim())) {
+        return {amount:550,source:'Official textbook fee for this class'};
       }
+    }
+    return {amount:null,source:'Enter the actual amount due'};
+  };
 
-      if(!result || result.success!==true){
-        console.error("Fee record cloud sync failed:",result);
-        const idx=d.feeRecords.findIndex(r=>String(r.id)===feeId);
-        if(idx!==-1)d.feeRecords.splice(idx,1);
-        save();
-        alert(
-          "Fee record was not saved to Google Sheets."+
-          (result&&result.error?"\n\nReason: "+result.error:"")
-        );
-        render();
+  const refreshBulkFeeAmount=()=>{
+    const info=getOfficialBulkAmount(bulkItem?.value,bulkClass?.value);
+    if(bulkAmount && info.amount!==null) bulkAmount.value=Number(info.amount).toFixed(2);
+    const helper=document.getElementById('bulkFeeAmountHelp');
+    if(helper){
+      const item=String(bulkItem?.value||'').trim();
+      if(!item) helper.textContent='This amount is applied to everyone first. You can adjust exceptions on the review screen.';
+      else if(info.amount!==null) helper.textContent=`${info.source}. This amount is applied to everyone first; special students can be adjusted on the review screen.`;
+      else helper.textContent='This fee has a variable/range or daily charge. Enter the actual amount due; special students can be adjusted on the review screen.';
+    }
+  };
+
+  bulkItem?.addEventListener('change',refreshBulkFeeAmount);
+  bulkClass?.addEventListener('change',refreshBulkFeeAmount);
+
+  bulkTerm.value=String(d.school?.term||'').trim() || 'Term 1';
+
+  $('#bulkFeeAssignmentForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+
+    const f=new FormData(e.target);
+    const scope=String(f.get('scope')||'class');
+    const className=String(f.get('className')||'').trim();
+    const feeItem=String(f.get('feeItem')||'').trim();
+    const amountDue=Number(f.get('amountDue')||0);
+    const academicYear=String(f.get('academicYear')||'').trim();
+    const term=String(f.get('term')||'').trim();
+    const skipExisting=f.get('skipExisting')==='on';
+
+    if(scope!=='all' && !className){alert('Please select a class.');return;}
+    if(!feeItem){alert('Please select a Fee Item.');return;}
+    if(!Number.isFinite(amountDue)||amountDue<0){alert('Please enter a valid Amount Due.');return;}
+    if(!academicYear){alert('Please enter the Academic Year.');return;}
+    if(!term){alert('Please select the Term.');return;}
+
+    const targets=(d.students||[]).filter(s=>{
+      if(scope==='all') return true;
+      const cls=String(s.class||s.className||s.classLevel||'').trim();
+      return cls===className;
+    });
+
+    if(!targets.length){
+      alert(scope==='all'?'No students are registered yet.':'No students were found in the selected class.');
+      return;
+    }
+
+    const existing=(d.feeRecords||[]);
+    const samePeriod=(r)=>String(r.academicYear||r.year||'').trim()===academicYear &&
+      String(r.term||'').trim()===term &&
+      String(r.feeItem||'').trim().toLowerCase()===feeItem.toLowerCase();
+
+    const hasExisting=(s)=>existing.some(r=>{
+      if(!samePeriod(r)) return false;
+      const sidCandidates=[s.id,s.sid,s.studentId,s["Student ID"]]
+        .filter(v=>v!==undefined&&v!==null&&String(v).trim()!=="").map(String);
+      const recordIds=[r.studentId,r.studentSid,r.sid,r["Student ID"]]
+        .filter(v=>v!==undefined&&v!==null&&String(v).trim()!=="").map(String);
+      return sidCandidates.some(id=>recordIds.includes(id));
+    });
+
+    // Students already carrying the exact fee/period can be skipped, while
+    // new students are presented with a review table. The standard amount is
+    // prefilled, so the administrator only edits exceptional students.
+    const candidates=targets.filter(s=>!(skipExisting && hasExisting(s)));
+    const skipped=targets.length-candidates.length;
+
+    if(!candidates.length){
+      alert(`No new fee records were created. ${skipped} student(s) already have this fee for ${academicYear} / ${term}.`);
+      return;
+    }
+
+    const nameOf=(student)=>String(
+      student.name ||
+      student.fullName ||
+      [student.firstName,student.middleName,student.surname,student.otherName].filter(Boolean).join(' ') ||
+      'Unnamed Student'
+    ).trim();
+
+    const reviewHtml=`
+      <div class='panel' style='margin:0;border:1px solid #ddd;padding:14px;background:#fff'>
+        <div class='panel-title'>
+          <div>
+            <h3>Review Student Fee Assignment</h3>
+            <span>${esc(feeItem)} · ${esc(academicYear)} · ${esc(term)}</span>
+          </div>
+        </div>
+        <p class='muted'>
+          Standard amount: <b>GHS ${amountDue.toFixed(2)}</b>.
+          The system has prefilled this amount for every new student.
+          <b>Only change the students whose actual amount is different.</b>
+        </p>
+
+        <div style='display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0'>
+          <button type='button' class='secondary' id='bulkFeeReviewReset'>Reset All to GHS ${amountDue.toFixed(2)}</button>
+          <span class='muted'>Students to assign: <b>${candidates.length}</b>${skipped?` · Already existing/skipped: <b>${skipped}</b>`:''}</span>
+        </div>
+
+        <div class='table' style='max-height:55vh;overflow:auto'>
+          <table>
+            <tr><th>#</th><th>Student</th><th>Class</th><th>Amount Due (GHS)</th></tr>
+            ${candidates.map((s,i)=>{
+              const cls=String(s.class||s.className||s.classLevel||'').trim();
+              return `<tr>
+                <td>${i+1}</td>
+                <td><b>${esc(nameOf(s))}</b><br><small>${esc(s.sid||s.studentId||s["Student ID"]||s.id||'')}</small></td>
+                <td>${esc(cls)}</td>
+                <td><input class='bulk-fee-review-amount' data-index='${i}' type='number' min='0' step='.01' value='${amountDue.toFixed(2)}' style='width:140px'></td>
+              </tr>`;
+            }).join('')}
+          </table>
+        </div>
+
+        <div class='panel' style='margin-top:14px;background:#f8fafc;border:1px solid #e5e7eb'>
+          <b>How this works</b>
+          <p class='muted' style='margin:6px 0 0'>
+            For example, if the standard fee is GHS 200, you can leave all students at GHS 200,
+            change Kwaku to GHS 60 and Ama to GHS 200, then apply once.
+            Each student receives a separate fee account record.
+          </p>
+        </div>
+
+        <div style='display:flex;gap:10px;flex-wrap:wrap;margin-top:15px'>
+          <button type='button' class='primary' id='confirmBulkFeeAssignment'>Apply ${candidates.length} Student Fee Records</button>
+          <button type='button' class='secondary' id='cancelBulkFeeReview'>Cancel</button>
+        </div>
+        <div id='bulkFeeReviewProgress' class='report-help-text afisap-fee-bulk-progress' style='display:none;margin-top:10px'>
+          <div class='afisap-fee-loading-logo' aria-hidden='true'>
+            <img src='afisap_royal_academy_logo.png' alt=''>
+          </div>
+          <div class='afisap-fee-progress-copy'></div>
+        </div>
+      </div>`;
+
+    modal('Bulk Fee Assignment — Review Before Saving',reviewHtml);
+
+    const reviewModal=document.getElementById('modal');
+    const reviewAmounts=()=>Array.from(reviewModal?.querySelectorAll('.bulk-fee-review-amount')||[]);
+
+    reviewModal?.querySelector('#bulkFeeReviewReset')?.addEventListener('click',()=>{
+      reviewAmounts().forEach(input=>{input.value=amountDue.toFixed(2);});
+    });
+
+    reviewModal?.querySelector('#cancelBulkFeeReview')?.addEventListener('click',()=>{
+      reviewModal.classList.remove('show');
+    });
+
+    reviewModal?.querySelector('#confirmBulkFeeAssignment')?.addEventListener('click',async()=>{
+      const inputs=reviewAmounts();
+      if(inputs.length!==candidates.length){
+        alert('The student fee review could not be completed. Please close and try again.');
         return;
       }
 
-      nav('fees');
-      alert('Fee record saved successfully to Google Sheets and notifications updated.');
-    }catch(error){
-      console.error("Fee record cloud sync error:",error);
-
-      /* Verify once more before treating the save as failed. */
-      try{
-        const verify=await afisapCloudJsonp({
-          action:"search",
-          sheet:"Fees",
-          field:"Fee ID",
-          value:feeId
-        });
-
-        if(verify && verify.success===true &&
-           Array.isArray(verify.records) && verify.records.length){
-          nav('fees');
-          alert('Fee record saved successfully to Google Sheets and notifications updated.');
-          return;
-        }
-      }catch(verifyError){
-        console.warn("AFISAP: final fee verification failed:",verifyError);
+      const amounts=inputs.map(input=>Number(input.value||0));
+      if(amounts.some(v=>!Number.isFinite(v)||v<0)){
+        alert('Please enter a valid non-negative amount for every student.');
+        return;
       }
 
-      const idx=d.feeRecords.findIndex(r=>String(r.id)===feeId);
-      if(idx!==-1)d.feeRecords.splice(idx,1);
-      save();
-      alert(
-        "Fee record was not saved to Google Sheets.\n\nReason: "+
-        (error&&error.message?error.message:"Cloud database request failed.")
+      const confirmed=confirm(
+        `You are about to assign "${feeItem}" to ${candidates.length} student(s).`+
+        `\n\nAcademic Year: ${academicYear}\nTerm: ${term}`+
+        (skipped?`\n\n${skipped} existing record(s) will remain unchanged.`:'')+
+        `\n\nContinue?`
       );
-      render();
-    }
+      if(!confirmed) return;
+
+      const now=new Date().toISOString();
+      const date=now.slice(0,10);
+      const records=candidates.map((student,i)=>{
+        const sid=String(student.sid||student.studentId||student["Student ID"]||student.id||'');
+        const studentName=nameOf(student);
+        const due=Number(amounts[i]||0);
+        const feeId=`FEE|${encodeURIComponent(feeItem)}|${Date.now()}-${i}-${Math.random().toString(36).slice(2,7)}`;
+        return {
+          local:{
+            id:feeId,
+            feeId:feeId,
+            studentId:String(student.id),
+            studentSid:sid,
+            admissionNumber:String(student.admissionNumber||student["Admission Number"]||''),
+            studentName,
+            feeItem,
+            amountDue:due,
+            amountPaid:0,
+            balance:due,
+            date,
+            academicYear,
+            term,
+            dateCreated:now,
+            lastUpdated:now
+          },
+          cloud:{
+            "Fee ID":feeId,
+            "Student ID":sid,
+            "Admission Number":String(student.admissionNumber||student["Admission Number"]||''),
+            "Student Name":studentName,
+            "Fee Item":feeItem,
+            "Amount Due":due,
+            "Amount Paid":0,
+            "Balance":due,
+            "Date":date,
+            "Academic Year":academicYear,
+            "Term":term,
+            "Date Created":now,
+            "Last Updated":now
+          }
+        };
+      });
+
+      const button=reviewModal.querySelector('#confirmBulkFeeAssignment');
+      const cancel=reviewModal.querySelector('#cancelBulkFeeReview');
+      const progress=reviewModal.querySelector('#bulkFeeReviewProgress');
+      const setBulkFeeProgress=(message)=>{
+        if(!progress)return;
+        progress.style.display='';
+        const copy=progress.querySelector('.afisap-fee-progress-copy');
+        if(copy)copy.textContent=message;
+        else progress.textContent=message;
+      };
+      if(button) button.disabled=true;
+      if(cancel) cancel.disabled=true;
+      if(progress){
+        progress.style.display='';
+        setBulkFeeProgress(`Preparing ${records.length} fee records...`);
+      }
+
+      try{
+        const backendCheck=await afisapVerifyLiveFeesBackend();
+        if(!backendCheck.success)throw new Error(backendCheck.error);
+        let result=await afisapCloudPost({
+          action:'bulkCreateFees',
+          sheet:'Fees',
+          records:records.map(x=>x.cloud)
+        });
+
+        if(!result || result.success!==true){
+          setBulkFeeProgress('Bulk cloud save unavailable; using the existing verified save method...');
+          let created=0;
+          for(let i=0;i<records.length;i++){
+            const one=await afisapCloudPost({action:'create',sheet:'Fees',data:records[i].cloud});
+            if(!one || one.success!==true) throw new Error(one?.error||`Failed to save ${nameOf(candidates[i])}.`);
+            created++;
+            setBulkFeeProgress(`Saving fee records to Google Sheets: ${created}/${records.length}`);
+          }
+          result={success:true,created};
+        }
+
+        const createdCount=Number(result.created||0);
+        const savedRecords=Array.isArray(result.records)?result.records:[];
+        setBulkFeeProgress(`Saved ${createdCount} fee record(s) to Google Sheets. Updating this screen...`);
+
+        // The backend already returned the exact rows it wrote. Update the
+        // current browser state from that authoritative response instead of
+        // downloading every school sheet again.
+        const studentBySid=new Map((d.students||[]).map(s=>[
+          String(s.sid||s.studentId||s["Student ID"]||s.id||'').trim(),s
+        ]));
+        const localSaved=savedRecords.map(r=>{
+          const sid=String(r["Student ID"]||'').trim();
+          const student=studentBySid.get(sid);
+          return {
+            id:String(r["Fee ID"]||''),
+            feeId:String(r["Fee ID"]||''),
+            sheetRow:Number(r["__SheetRow"]||0),
+            studentId:student?String(student.id):sid,
+            studentSid:sid,
+            admissionNumber:String(r["Admission Number"]||'').trim(),
+            studentName:String(r["Student Name"]||'').trim(),
+            feeItem:String(r["Fee Item"]||feeItem).trim(),
+            amountDue:Number(r["Amount Due"]||0),
+            amountPaid:Number(r["Amount Paid"]||0),
+            balance:Number(r["Balance"]??Math.max(0,Number(r["Amount Due"]||0)-Number(r["Amount Paid"]||0))),
+            date:String(r["Date"]||date).trim(),
+            academicYear:String(r["Academic Year"]||academicYear).trim(),
+            term:String(r["Term"]||term).trim(),
+            dateCreated:String(r["Date Created"]||now).trim(),
+            lastUpdated:String(r["Last Updated"]||now).trim()
+          };
+        });
+        if(localSaved.length){
+          const newIds=new Set(localSaved.map(r=>r.id));
+          d.feeRecords=[...(d.feeRecords||[]).filter(r=>!newIds.has(String(r.feeId||r.id||''))),...localSaved];
+        }
+        persist();
+
+        setBulkFeeProgress(`Completed: ${createdCount} fee record(s) saved.`);
+
+        setTimeout(()=>{
+          reviewModal.classList.remove('show');
+          nav('fees');
+          alert(
+            `Bulk fee assignment completed.\n\n`+
+            `Fee: ${feeItem}\n`+
+            `Students assigned: ${createdCount}\n`+
+            `Skipped existing: ${skipped}\n`+
+            `Academic Year: ${academicYear}\n`+
+            `Term: ${term}`
+          );
+        },250);
+      }catch(error){
+        console.error('AFISAP bulk fee assignment error:',error);
+        setBulkFeeProgress('The assignment failed; nothing was saved locally.');
+        alert(
+          'The bulk fee assignment was not completed.\n\n'+
+          'Reason: '+(error&&error.message?error.message:'Cloud database request failed.')+
+          '\n\nNothing was saved locally. Google Sheets remains the source of truth.'
+        );
+        if(button) button.disabled=false;
+        if(cancel) cancel.disabled=false;
+      }
+    });
   });
+
+
 }
 function settings(){
   $('#app').innerHTML=`<form class='panel form' id='schoolSettingsForm'>
@@ -3793,25 +5773,36 @@ function settings(){
     </div>
   </form>`;
 
-  $('#schoolSettingsForm').addEventListener('submit',function(e){
+  $('#schoolSettingsForm').addEventListener('submit',async function(e){
     e.preventDefault();
     const academicYear=$('#y').value.trim();
-    if(!academicYear){
-      alert('Please enter or choose an Academic Year.');
-      return;
-    }
-    d.school={
-      name:$('#n').value.trim(),
-      year:academicYear,
-      term:$('#t').value,
-      head:$('#h').value.trim(),
-      phone:$('#p').value.trim(),
-      email:$('#e').value.trim(),
-      address:$('#a').value.trim()
+    if(!academicYear){alert('Please enter or choose an Academic Year.');return;}
+    const previous=d.school;
+    const candidate={
+      name:$('#n').value.trim(),year:academicYear,term:$('#t').value,
+      head:$('#h').value.trim(),phone:$('#p').value.trim(),email:$('#e').value.trim(),address:$('#a').value.trim()
     };
-    save();
-    afisapSaveCentralConfig().catch(()=>{});
-    alert('School details saved successfully.');
+    const button=this.querySelector('button[type="submit"]');
+    const oldText=button?.textContent||'Save School Details';
+    if(button){button.disabled=true;button.textContent='Saving...';}
+    afisapShowUploadLoader("Saving School Details","Saving school information to Google Sheets...",15);
+    d.school=candidate;
+    try{
+      afisapUpdateUploadLoader("Updating the official System Settings sheet...",55);
+      const result=await afisapSaveCentralConfig();
+      if(!result||result.success!==true)throw new Error(String(result?.error||"Google Sheets did not confirm the update."));
+      afisapUpdateUploadLoader("School details saved successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,220));
+      afisapHideUploadLoader();
+      alert('School details saved successfully to Google Sheets.');
+    }catch(error){
+      d.school=previous;
+      afisapUpdateUploadLoader("School details could not be saved.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert('School details were not saved to Google Sheets.\n\nReason: '+String(error?.message||error||'Unknown error'));
+    }finally{
+      if(button){button.disabled=false;button.textContent=oldText;}
+    }
   });
 }
 function modal(title,body){$('#modal').innerHTML=`<div class='modalbox'><h3>${title}</h3>${body}<br><button onclick="$('#modal').classList.remove('show')">Cancel</button></div>`;$('#modal').classList.add('show')};function openStudent(){
@@ -3866,7 +5857,7 @@ function modal(title,body){$('#modal').innerHTML=`<div class='modalbox'><h3>${ti
       <label class="wide">Class
         <select name="class" id="studentClassSelect" required>
           <option value="">Select Class</option>
-          ${AFISAP_CLASSES.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+          ${afisapCentralClassNames().map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}
         </select>
       </label>
 
@@ -3962,9 +5953,6 @@ function modal(title,body){$('#modal').innerHTML=`<div class='modalbox'><h3>${ti
       return;
     }
 
-    d.students.push(student);
-    save();
-
     try{
       afisapShowUploadLoader("Saving Student","Saving student information to Google Sheets...",15);
       if(driveStatus) driveStatus.textContent="Saving student to Google Sheets...";
@@ -3975,7 +5963,7 @@ function modal(title,body){$('#modal').innerHTML=`<div class='modalbox'><h3>${ti
         if(idx!==-1)d.students.splice(idx,1);
         save();
         if(driveStatus) driveStatus.textContent="Google Sheets save failed.";
-        alert("Student could not be saved to Google Sheets. Please check the connection and try again.");
+        alert("Student could not be saved to Google Sheets."+((cloudResult&&cloudResult.error)?"\n\nReason: "+cloudResult.error:"\n\nPlease check the Apps Script deployment and try again."));
         afisapHideUploadLoader();
         return;
       }
@@ -3991,26 +5979,12 @@ function modal(title,body){$('#modal').innerHTML=`<div class='modalbox'><h3>${ti
       if(!driveResult||!driveResult.fileId) throw new Error("Google Drive returned no File ID.");
       afisapUpdateUploadLoader("Passport photo uploaded. Confirming and linking it to the student...",85);
 
-      student.passportPhotoFileId=afisapDriveFileId(driveResult.fileId);
-      student.passportPhotoUrl=afisapDriveFileUrl(student.passportPhotoFileId);
-      student.photo=(await afisapDrivePhotoDataUrl(student.passportPhotoFileId))||student.passportPhotoUrl;
-      save();
-
-      // driveUpload() already writes the permanent Drive File ID (and URL when
-      // available) into the matching Students row. Do not perform a second
-      // Sheets update here; the verified Drive/Sheet reference is authoritative.
-
+      // Google Sheets/Drive are authoritative. Reload the confirmed student
+      // and Drive reference instead of committing a browser-created copy.
       afisapUpdateUploadLoader("Student and passport photo saved successfully.",100);
-      await new Promise(resolve=>setTimeout(resolve,450));
+      await afisapSyncAllFromCloud();
+      await new Promise(resolve=>setTimeout(resolve,250));
       if(driveStatus) driveStatus.textContent="✓ Student and passport photo saved successfully.";
-      // Final local-state commit: keep the newly saved student visible after
-      // the Drive upload/loading sequence completes.
-      if(!Array.isArray(d.students)) d.students=[];
-      const existingIndex=d.students.findIndex(x=>String(x.id)===String(student.id) || String(x.sid)===String(student.sid));
-      if(existingIndex>=0) d.students[existingIndex]=student;
-      else d.students.push(student);
-      persist();
-      if(typeof students==="function" && document.getElementById("app")) students();
 
       $('#modal').classList.remove('show');
       nav('students');
@@ -4019,7 +5993,8 @@ function modal(title,body){$('#modal').innerHTML=`<div class='modalbox'><h3>${ti
     }catch(error){
       console.error("AFISAP single Drive passport workflow:",error);
       if(driveStatus) driveStatus.textContent="Student saved, but the passport photo upload failed.";
-      alert("Student was saved successfully to Google Sheets, but the passport photo could not be saved to Google Drive.\n\nReason: "+String(error.message||error));
+      await afisapSyncAllFromCloud().catch(()=>{});
+      alert("Student was saved to Google Sheets, but the passport photo could not be saved to Google Drive. The screen has been reconciled from the central database.\n\nReason: "+String(error.message||error));
       afisapHideUploadLoader();
     }
   });
@@ -4043,6 +6018,7 @@ function afisapStaffToCloud(s){
     "Ghana Card":String(s.ghanaCard||s.ghanaCardNumber||"").trim(),
     "Ghana Card Number":String(s.ghanaCard||s.ghanaCardNumber||"").trim(),
     "Email":String(s.email||"").trim(),
+    "Appointment Date":afisapDateOnly(s.appointmentDate||""),
     "Address":String(s.address||"").trim(),
     "Passport Photo":String(s.passportPhotoFileId||"").trim(),
     "Status":String(s.status||"Active").trim(),
@@ -4069,7 +6045,7 @@ function afisapCloudToStaff(r){
     ghanaCard:String(r["Ghana Card"]||r["Ghana Card Number"]||"").trim(),
     ghanaCardNumber:String(r["Ghana Card"]||r["Ghana Card Number"]||"").trim(),
     email:String(r["Email"]||"").trim(),
-    appointmentDate:String(r["Appointment Date"]||"").trim(),
+    appointmentDate:afisapDateOnly(r["Appointment Date"]),
     address:String(r["Address"]||"").trim(),
     status:String(r["Status"]||"Active").trim(),
     dateCreated:String(r["Date Created"]||"").trim(),
@@ -4116,8 +6092,8 @@ async function afisapCloudCreateStaff(s){
     error:"Teacher record could not be saved to Google Sheets."
   };
 }
-function afisapCloudUpdateStaff(s){
-  return afisapCloudPost({action:"update",sheet:"Teachers",idField:"Staff ID",idValue:String(s.sid||""),data:afisapStaffToCloud(s)});
+function afisapCloudUpdateStaff(s,originalSid){
+  return afisapCloudPost({action:"update",sheet:"Teachers",idField:"Staff ID",idValue:String(originalSid||s.sid||""),data:afisapStaffToCloud(s)});
 }
 function afisapCloudDeleteStaff(sid){
   return afisapCloudPost({action:"delete",sheet:"Teachers",idField:"Staff ID",idValue:String(sid||"")});
@@ -4200,10 +6176,10 @@ function openStaff(){
         <div id="staff-passport-upload-drive" style="margin-top:7px;font-size:.9rem;min-height:20px"></div>
       </label>
 
-      <label>Class
-        <select name="class">
-          <option value="">Not assigned</option>
-          ${AFISAP_CLASSES.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+      <label>Assigned Class(es)
+        <small style="display:block;color:#64748b;margin:4px 0">Select 1, 2 or 3 classes. Hold Ctrl while selecting multiple classes on a computer.</small>
+        <select name="class" multiple size="6">
+          ${afisapStaffClassOptions("")}
         </select>
       </label>
 
@@ -4305,6 +6281,9 @@ function openStaff(){
       return;
     }
 
+    let assignedClasses=[];
+    try{assignedClasses=afisapSelectedStaffClasses(form)}catch(err){alert(err.message);return;}
+
     const person = {
       id: Date.now(),
       sid: sid,
@@ -4313,7 +6292,7 @@ function openStaff(){
       middleName: middleName,
       name: [firstName, middleName, surname].filter(Boolean).join(" "),
       position: finalPosition,
-      class: String(f.get("class") || "").trim(),
+      class: assignedClasses.join(", "),
       subject: String(f.get("subject") || "").trim(),
       phone: String(f.get("phone") || "").trim(),
       ghanaCard: String(f.get("ghanaCard") || "").trim(),
@@ -4325,11 +6304,6 @@ function openStaff(){
       dateCreated: new Date().toISOString()
     };
 
-    if (!Array.isArray(d.staff)) d.staff=[];
-
-    d.staff.push(person);
-    save();
-
     // Use the SAME AFISAP loading mechanism already used by the working
     // student and administrator photo uploads. Do not alter the save/upload
     // architecture; this only makes the existing Teacher/Staff operation visible.
@@ -4340,82 +6314,41 @@ function openStaff(){
     );
 
     try{
+      const selectedFile=photoInput && photoInput.files && photoInput.files[0];
+      if(!selectedFile)throw new Error("The selected teacher/staff passport photo file is unavailable.");
+
+      afisapUpdateUploadLoader("Preparing teacher / staff passport photo...",35);
+      const uploadFile=await afisapPreparePassportPhoto(selectedFile);
+
+      afisapUpdateUploadLoader("Uploading teacher / staff passport photo to Google Drive...",55);
+      const driveResult=await afisapDriveUpload(uploadFile,"staff-passports",person.sid);
+      if(!driveResult || !driveResult.fileId)throw new Error("Google Drive did not return a File ID.");
+
+      person.passportPhotoFileId=String(driveResult.fileId);
+      person.passportPhotoUrl=afisapDriveFileUrl(person.passportPhotoFileId);
+      person.photo=person.passportPhotoUrl;
+
+      afisapUpdateUploadLoader("Saving teacher / staff information to Google Sheets...",80);
       const cloudResult=await afisapCloudCreateStaff(person);
       if(!cloudResult || cloudResult.success!==true){
         throw new Error(String(cloudResult&&cloudResult.error||"Unknown Google Sheets error."));
       }
 
-      // Mark only this newly-created staff record as recently confirmed by the
-      // Teachers sheet so background sync cannot transiently remove it while the
-      // Drive passport upload/link is still completing.
-      person._afisapStaffCloudConfirmedAt=Date.now();
-      persist();
+      d.staff.push(person);
+      afisapUpdateUploadLoader("Teacher / Staff and passport photo saved successfully.",100);
+      console.log("AFISAP: Staff passport photo saved to Google Drive and linked in Teachers sheet.",person.sid,person.passportPhotoFileId);
 
-      afisapUpdateUploadLoader(
-        "Teacher / staff saved to Google Sheets. Preparing passport photo...",
-        45
-      );
-
-      const statusBox=document.getElementById("staff-passport-upload-drive");
-      const selectedFile=photoInput && photoInput.files && photoInput.files[0];
-
-      if(!selectedFile){
-        throw new Error("The selected teacher/staff passport photo file is unavailable.");
-      }
-
-      afisapUpdateUploadLoader(
-        "Uploading teacher / staff passport photo to Google Drive...",
-        65
-      );
-
-      const uploadFile=await afisapPreparePassportPhoto(selectedFile);
-
-      afisapUpdateUploadLoader(
-        "Saving teacher / staff passport photo to Google Drive...",
-        85
-      );
-
-      const driveResult=await afisapDriveUpload(uploadFile,"staff-passports",person.sid);
-      if(!driveResult || !driveResult.fileId){
-        throw new Error("Google Drive did not return a File ID.");
-      }
-
-      person.passportPhotoFileId=String(driveResult.fileId);
-      person.passportPhotoUrl=afisapDriveFileUrl(driveResult.fileId);
-      person.photo=person.passportPhotoUrl;
-      save();
-
-      afisapUpdateUploadLoader(
-        "Teacher / Staff and passport photo saved successfully.",
-        100
-      );
-
-      console.log("AFISAP: Staff passport photo saved to Google Drive.",person.sid,person.passportPhotoFileId);
-
-      // Give the 100% state a moment to render, then return to the staff list.
-      setTimeout(()=>{
-        afisapHideUploadLoader();
-        if(typeof $('#modal') !== "undefined" && $('#modal')){
-          $('#modal').classList.remove('show');
-        }
-        nav('staff');
-      },350);
+      await new Promise(resolve=>setTimeout(resolve,250));
+      afisapHideUploadLoader();
+      if(typeof $('#modal') !== "undefined" && $('#modal')) $('#modal').classList.remove('show');
+      nav('staff');
 
     }catch(error){
       console.error("AFISAP: Teacher / Staff save or passport upload failed:",error);
-
-      // Remove the locally-created staff record only if the central save itself failed.
-      // If the Sheets save succeeded but Drive failed, retain the staff record.
       const message=String(error&&error.message||error||"Unknown error");
-      if(message.indexOf("Google Sheets")>=0 || message.indexOf("Unknown Google Sheets")>=0){
-        const idx=d.staff.findIndex(x=>String(x.id)===String(person.id));
-        if(idx!==-1)d.staff.splice(idx,1);
-        save();
-      }
-
-      afisapUpdateUploadLoader("Teacher / Staff upload could not be completed. Please try again.",100);
-      setTimeout(()=>afisapHideUploadLoader(),700);
-      alert("Teacher / staff could not be fully saved.\n\nReason: "+message);
+      afisapUpdateUploadLoader("Teacher / Staff operation could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert("Teacher / staff operation was not fully completed.\n\nReason: "+message);
     }
   });
 }
@@ -4521,74 +6454,206 @@ async function openClass(){
   modal('Create Class',`
     <form id="classEntryForm" class="form">
       <label>Class Name
-        <select name="name" required>
+        <select name="name" id="afisapClassNameSelect" required>
           <option value="">Select Class</option>
           ${AFISAP_MANAGEMENT_CLASSES.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}
+          <option value="__OTHER_CUSTOM_CLASS__">Other / Custom Class</option>
         </select>
+      </label>
+      <label id="afisapCustomClassWrap" style="display:none">Custom Class Name
+        <input name="customClassName" id="afisapCustomClassName" placeholder="e.g. Nursery 1A">
       </label>
       <label>Class Teacher
         <input name="teacher" type="text" placeholder="Type class teacher's full name">
       </label>
-      <div class="wide"><button type="submit" class="primary">Save Class</button></div>
+      <div class="wide"><button type="submit" class="primary">Create Class</button></div>
     </form>`);
-  const form=document.getElementById("classEntryForm");
+  const form=document.getElementById("classEntryForm"),select=document.getElementById("afisapClassNameSelect"),wrap=document.getElementById("afisapCustomClassWrap"),custom=document.getElementById("afisapCustomClassName");
+  select.onchange=()=>{const other=select.value==="__OTHER_CUSTOM_CLASS__";wrap.style.display=other?"block":"none";if(other)custom.focus()};
   form.addEventListener("submit",async e=>{
-    e.preventDefault();
-    const f=new FormData(form);
-    const className=String(f.get("name")||"").trim();
+    e.preventDefault();const f=new FormData(form),choice=String(f.get("name")||"").trim();
+    const className=choice==="__OTHER_CUSTOM_CLASS__"?String(f.get("customClassName")||"").trim():choice;
     const teacher=String(f.get("teacher")||"").trim();
-    if(!className){alert("Please choose a class.");return;}
-    if(d.classes.some(c=>String(c.name).toLowerCase()===className.toLowerCase())){
-      alert("That class has already been configured.");
+    if(choice==="__OTHER_CUSTOM_CLASS__"&&!className){alert("Please enter a class name.");return}
+    if(!className){alert("Please choose a class.");return}
+    const classKey=className.toLowerCase();
+    const classAlreadySaved=(d.classes||[]).some(c=>
+      String(c&& (c.name||c.className)||"").trim().toLowerCase()===classKey
+    );
+    if(classAlreadySaved){
+      alert("This class already exists.");return
+    }
+    const now=Date.now(),classRecord={id:now,classId:"CLASS-"+now,name:className,level:"",academicYear:String(d.school?.year||"").trim(),teacher,capacity:"",status:"Active",dateCreated:new Date().toISOString()};
+    const submitButton=form.querySelector('button[type="submit"]');
+    const originalButtonText=submitButton?.textContent||"Create Class";
+    if(submitButton){submitButton.disabled=true;submitButton.textContent="Please wait…";}
+    afisapShowUploadLoader("Adding Class","Preparing class information…",10);
+    try{
+      // Keep the loader lightweight and truthful: each percentage marks a real stage.
+      afisapUpdateUploadLoader("Checking class details…",20);
+      await new Promise(resolve=>setTimeout(resolve,80));
+
+      afisapUpdateUploadLoader("Saving class to Google Sheets…",30);
+      const cloudResult=await afisapCloudCreateClass(classRecord);
+      if(!cloudResult||cloudResult.success!==true){
+        throw new Error(String(cloudResult?.error||"Google Sheets did not confirm the class."));
+      }
+
+      afisapUpdateUploadLoader("Google Sheets confirmed the class…",60);
+      await new Promise(resolve=>setTimeout(resolve,80));
+
+      afisapUpdateUploadLoader("Refreshing Classes & Subjects…",80);
+      const syncResult=await afisapSyncAllFromCloud();
+      if(syncResult && syncResult.success===false){
+        throw new Error(String(syncResult.error||"The class was saved, but the page could not refresh."));
+      }
+
+      afisapUpdateUploadLoader("Class added successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,300));
+      $('#modal').classList.remove('show');
+      nav('classes');
+      afisapHideUploadLoader();
+      alert("Class added successfully and confirmed in Google Sheets.");
+    }catch(error){
+      afisapUpdateUploadLoader("Class could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),700);
+      if(submitButton){submitButton.disabled=false;submitButton.textContent=originalButtonText;}
+      alert("Class could not be confirmed in Google Sheets. Nothing was saved locally. Please check your internet connection and try again."+(error?.message?"\n\nReason: "+error.message:""));
       return;
     }
-
-    const classRecord={
-      id:Date.now(),
-      classId:"CLASS-"+Date.now(),
-      name:className,
-      level:"",
-      academicYear:String(d.school?.year||"").trim(),
-      teacher,
-      capacity:"",
-      status:"Active",
-      dateCreated:new Date().toISOString()
-    };
-
-    d.classes.push(classRecord);
-    save();
-
-    const cloudResult=await afisapCloudCreateClass(classRecord);
-    if(!cloudResult || cloudResult.success!==true){
-      d.classes=d.classes.filter(c=>String(c.id)!==String(classRecord.id));
-      save();
-      alert("Class could not be confirmed in Google Sheets. The local test record has been removed. Please check your internet connection and try again.");
-      return;
-    }
-
-    const savedClassId=cloudResult.record && cloudResult.record["Class ID"];
-    if(savedClassId){
-      classRecord.classId=String(savedClassId);
-    }
-    classRecord._afisapClassCloudConfirmedAt=Date.now();
-    save();
-
-    $('#modal').classList.remove('show');
-    nav('classes');
-    alert("Class added successfully and saved to Google Sheets.");
-  });
+  })
 }
 function openFee(){
   modal('Add Fee Item',`<form id='feeItemForm' class='form'><label>Fee Item<input name='name' required></label><label>Amount (GHS)<input name='amount' type='number' min='0' step='.01' required></label><div class='wide'><button type='submit' class='primary'>Save Fee Item</button></div></form>`);
   const form=$('#feeItemForm');
-  form.addEventListener('submit',e=>{
-    e.preventDefault();
-    const f=new FormData(form);
-    d.fees.push({id:Date.now(),name:String(f.get('name')||'').trim(),amount:Number(f.get('amount')||0)});
-    save();$('#modal').classList.remove('show');nav('fees');alert('Fee item added.');
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();const f=new FormData(form),name=String(f.get('name')||'').trim(),amount=Number(f.get('amount')||0);
+    if(!name){alert('Please enter a fee item.');return;}
+    const btn=form.querySelector('button[type="submit"]'),oldText=btn?.textContent||'Save Fee Item';if(btn){btn.disabled=true;btn.textContent='Saving...';}
+    const feeId='FEE_ITEM|'+encodeURIComponent(name)+'|'+Date.now(),now=new Date().toISOString();
+    const result=await afisapCloudPost({action:'create',sheet:'Fees',data:{
+      'Fee ID':feeId,'Student ID':'','Student Name':'','Fee Item':name,'Amount Due':amount,'Amount Paid':0,
+      'Balance':amount,'Date':'','Academic Year':'','Term':'','Date Created':now,'Last Updated':now
+    }}).catch(()=>null);
+    if(!result||result.success!==true){if(btn){btn.disabled=false;btn.textContent=oldText;}alert('Fee item was not saved to Google Sheets.'+(result?.error?'\n\nReason: '+result.error:''));return;}
+    await afisapSyncAllFromCloud();$('#modal').classList.remove('show');nav('fees');alert('Fee item saved successfully to Google Sheets.');
   });
 }
 async function del(type,id){
+  if(type==="feeRecords"||type==="fees"){
+    const label=type==="fees"?'fee item':'fee record';
+    if(!confirm(`Are you sure you want to delete this ${label}?`))return;
+    const deleteButton=document.querySelector(`[data-fee-delete-type="${type}"][data-fee-delete-id="${CSS.escape(String(id))}"]`);
+    const oldDeleteText=deleteButton?.textContent||'Delete';
+    if(deleteButton){deleteButton.disabled=true;deleteButton.textContent='Deleting...';}
+    const list=d[type]||[],record=list.find(x=>String(x.id||x.name)===String(id));
+    if(!record){if(deleteButton){deleteButton.disabled=false;deleteButton.textContent=oldDeleteText;}alert("Record not found.");return;}
+    const feeId=String(record.id||record.feeId||record["Fee ID"]||"").trim();
+    if(type==="fees"&&!/^FEE_ITEM\|/i.test(feeId)){if(deleteButton){deleteButton.disabled=false;deleteButton.textContent=oldDeleteText;}alert("This fee item is not yet stored in Google Sheets. Re-save it first.");return;}
+    if(!feeId){if(deleteButton){deleteButton.disabled=false;deleteButton.textContent=oldDeleteText;}alert("The record has no Google Sheets Fee ID.");return;}
+    const result=await afisapCloudPost({
+      action:"delete",sheet:"Fees",idField:"Fee ID",idValue:feeId,
+      sheetRow:Number(record.sheetRow||0)
+    }).catch(()=>null);
+    if(!result||result.success!==true){
+      if(deleteButton){deleteButton.disabled=false;deleteButton.textContent=oldDeleteText;}
+      alert("Deletion failed. The Google Sheets record was not confirmed as deleted."+(result?.error?"\n\nReason: "+result.error:""));return;
+    }
+    const syncAfterDelete=await afisapSyncAllFromCloud();
+    if(!syncAfterDelete || syncAfterDelete.success!==true){
+      alert("Google Sheets confirmed the deletion, but the Fees page could not refresh. Please refresh the page.");return;
+    }
+    const stillThere=(type==="fees"?d.fees:d.feeRecords).some(x=>String(x.id||x.feeId||"")===feeId);
+    if(stillThere){
+      alert("The fee still appears in the Google Sheets response, so the system will not claim it was deleted. Refresh and try again.");return;
+    }
+    nav("fees");
+    alert(type==="fees"?"Fee item deleted from Google Sheets.":"Fee record deleted from Google Sheets.");return;
+  }
+  if(type==="students"){
+    const wanted=String(id??"").trim();
+    const record=(d.students||[]).find(x=>String(x.id)===wanted || String(x.sid||x.studentId||"").trim()===wanted);
+    if(!record){alert("Student record not found. Refresh the Students page and try again.");return;}
+    const cloudStudentId=String(record.sid||record.studentId||record["Student ID"]||record.admissionNumber||"").trim();
+    if(!cloudStudentId){alert("Student was not deleted because the Student ID is missing.");return;}
+    if(!confirm(`Are you sure you want to delete ${String(record.name||record.firstName||"this student")} from the official Students record?`))return;
+    afisapShowUploadLoader("Deleting Student","Deleting the student from Google Sheets...",15);
+    try{
+      afisapUpdateUploadLoader("Removing the official student record...",60);
+      const result=await afisapCloudDeleteStudent(cloudStudentId);
+      if(!result || result.success!==true)throw new Error(String(result?.error||"Google Sheets did not confirm deletion."));
+      d.students=(d.students||[]).filter(x=>x!==record);
+      afisapUpdateUploadLoader("Student deleted successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,250));
+      afisapHideUploadLoader();
+      nav("students");
+      alert("Student deleted successfully from Google Sheets.");
+    }catch(error){
+      afisapUpdateUploadLoader("Student deletion could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert("Student was not deleted.\n\nReason: "+String(error?.message||error||"Unknown error"));
+    }
+    return;
+  }
+
+  if(type==="staff"){
+    const wanted=String(id??"").trim();
+    const record=(d.staff||[]).find(x=>
+      String(x.id??"").trim()===wanted ||
+      String(x.sid||x.staffId||x["Staff ID"]||"").trim()===wanted
+    );
+    if(!record){
+      alert("Teacher / staff record not found. Refresh the Teachers & Staff page and try again.");
+      return;
+    }
+
+    if(!confirm("Do you want to delete this staff?")) return;
+
+    const staffId=String(record.sid||record.staffId||record["Staff ID"]||"").trim();
+    if(!staffId){
+      alert("Teacher / staff was not deleted because the Staff ID is missing.");
+      return;
+    }
+
+    afisapShowUploadLoader("Deleting Staff","Deleting the teacher / staff record from Google Sheets...",15);
+    try{
+      afisapUpdateUploadLoader("Removing the official Teachers record...",55);
+      const result=await afisapCloudDeleteStaff(staffId);
+      if(!result || result.success!==true){
+        throw new Error(String(result?.error||"Google Sheets did not confirm the deletion."));
+      }
+
+      // Remove from the current Admin view only AFTER Google Sheets confirms it.
+      d.staff=(d.staff||[]).filter(x=>x!==record);
+      afisapUpdateUploadLoader("Staff deleted successfully.",100);
+      await new Promise(resolve=>setTimeout(resolve,220));
+      afisapHideUploadLoader();
+      nav("staff");
+      alert("Teacher / staff deleted successfully from Google Sheets.");
+    }catch(error){
+      afisapUpdateUploadLoader("Staff deletion could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
+      alert("Teacher / staff was not deleted.\n\nReason: "+String(error?.message||error||"Unknown error"));
+    }
+    return;
+  }
+
+  if(type==="classes"){
+    const wanted=String(id??"").trim(),record=(d.classes||[]).find(x=>String(x.id??x.classId??"").trim()===wanted);
+    if(!record){alert("Class record not found. Refresh Classes & Subjects and try again.");return;}
+    const className=String(record.name||record.className||"").trim(),key=className.toLowerCase();
+    if((d.students||[]).some(s=>String(s.class||s.className||"").trim().toLowerCase()===key)){alert("This class contains students. Please move the students before deleting the class.");return;}
+    const assignedTeachers=(d.staff||[]).filter(t=>afisapStaffClassAssignments(t.class||t.className||t["Class"]).some(c=>c.toLowerCase()===key));
+    if(assignedTeachers.length){alert("This class is still assigned to "+assignedTeachers.length+" teacher/staff record"+(assignedTeachers.length===1?"":"s")+". Remove the class from those teacher assignments before deleting it.");return;}
+    try{const pending=await afisapCloudPost({action:'adminGetPendingPromotions'}),rows=Array.isArray(pending?.promotions)?pending.promotions:[];if(rows.some(p=>String(p.previousClass||p.currentClass||"").trim().toLowerCase()===key||String(p.promotedTo||"").trim().toLowerCase()===key)){alert("This class is referenced by a pending promotion recommendation. Cancel or change that recommendation before deleting the class.");return;}}
+    catch(e){alert("The class dependency check could not be completed. Please try again.");return;}
+    if(!confirm(`Delete ${className} from the official Classes record?`))return;
+    afisapShowUploadLoader("Deleting Class","Checking dependencies and deleting from Google Sheets...",20);
+    try{const result=await afisapCloudDeleteClass(String(record.classId||record.id||"").trim());if(!result?.success)throw new Error(result?.error||"Google Sheets did not confirm class deletion.");await afisapSyncAllFromCloud();afisapUpdateUploadLoader("Class deleted successfully.",100);await new Promise(resolve=>setTimeout(resolve,220));afisapHideUploadLoader();nav("classes");alert("Class deleted successfully from Google Sheets.");}
+    catch(error){afisapUpdateUploadLoader("Class deletion could not be completed.",100);setTimeout(()=>afisapHideUploadLoader(),650);alert("Class was not deleted.\n\nReason: "+String(error?.message||error));}
+    return;
+  }
+
   const list=d[type]||[];
   const removedIndex=list.findIndex(x=>String(x.id)===String(id));
   const removed=removedIndex>=0 ? list[removedIndex] : null;
@@ -4638,7 +6703,9 @@ async function del(type,id){
     }
 
     if(cloudRecordMissing){
-      console.info("AFISAP: student had no matching Google Sheets record; deleting local record only.");
+      d.students.splice(Math.max(0,removedIndex),0,removed);
+      alert("Student was not deleted because no matching Google Sheets record was found. Refresh from the central database and try again.");
+      return;
     }
   }
 
@@ -4667,9 +6734,6 @@ async function del(type,id){
         errorText.includes("not found") ||
         errorText.includes("does not exist");
 
-      // These older teachers are local-only records. If the cloud API
-      // confirms that no matching record exists, it is safe to remove
-      // the local record instead of restoring it.
       if(!notFound){
         d.staff.splice(Math.max(0,removedIndex),0,removed);
         save();
@@ -4679,10 +6743,22 @@ async function del(type,id){
         );
         return;
       }
+      if(notFound){
+        d.staff.splice(Math.max(0,removedIndex),0,removed);
+        alert("Teacher / staff was not deleted because no matching Google Sheets record was found.");
+        return;
+      }
     }
   }
 
   if(type==="classes" && removed){
+    const className=String(removed.name||removed.className||"").trim();
+    const classHasStudents=(d.students||[]).some(s=>String(s.class||"").trim().toLowerCase()===className.toLowerCase());
+    if(classHasStudents){
+      d.classes.splice(Math.max(0,removedIndex),0,removed);save();
+      alert("This class contains students. Please move the students before deleting the class.");
+      return;
+    }
     const classId=String(
       removed.classId ??
       removed.id ??
@@ -4738,7 +6814,8 @@ async function del(type,id){
       action:"delete",
       sheet:"Fees",
       idField:"Fee ID",
-      idValue:feeId
+      idValue:feeId,
+      sheetRow:Number(removed.sheetRow||0)
     });
 
     if(!result || result.success!==true){
@@ -4761,6 +6838,7 @@ async function del(type,id){
   }
 
   if(type==="results" && removed){
+    afisapShowUploadLoader("Deleting Result","Deleting the official result from Google Sheets...",15);
     const resultId=String(
       removed.id ??
       removed.resultId ??
@@ -4771,10 +6849,13 @@ async function del(type,id){
     if(!resultId){
       d.results.splice(Math.max(0,removedIndex),0,removed);
       save();
+      afisapUpdateUploadLoader("Result deletion could not be completed.",100);
+      setTimeout(()=>afisapHideUploadLoader(),650);
       alert("Result was not deleted because the Result ID is missing.");
       return;
     }
 
+    afisapUpdateUploadLoader("Removing the official Results record...",55);
     const result=await afisapCloudDeleteResult(resultId);
 
     if(!result || result.success!==true){
@@ -4789,6 +6870,8 @@ async function del(type,id){
       if(!notFound){
         d.results.splice(Math.max(0,removedIndex),0,removed);
         save();
+        afisapUpdateUploadLoader("Result deletion could not be completed.",100);
+        setTimeout(()=>afisapHideUploadLoader(),650);
         alert(
           "Result was not deleted from Google Sheets. The local record has been restored."+
           (result && result.error ? "\n\nReason: "+result.error : "")
@@ -4798,6 +6881,19 @@ async function del(type,id){
 
       console.info("AFISAP: result had no matching Google Sheets record; deleting local record only.");
     }
+
+    const deletedStudent=(d.students||[]).find(s=>afisapStudentKey(s)===String(removed.studentId||"").trim());
+    if(deletedStudent){
+      await afisapRecalculateAcademicPositions(
+        String(deletedStudent.class||deletedStudent.className||""),
+        String(removed.term||removed.Term||"").trim(),
+        String(removed.academicYear||removed["Academic Year"]||removed.year||"").trim(),
+        true
+      );
+    }
+    afisapUpdateUploadLoader("Result deleted successfully.",100);
+    await new Promise(resolve=>setTimeout(resolve,220));
+    afisapHideUploadLoader();
   }
 }async function afisapRepairLocalFeeRecordsToCloud(){
   const records=Array.isArray(d.feeRecords)?d.feeRecords:[];
@@ -4860,11 +6956,9 @@ let afisapBackgroundSyncRunning=false;
 setInterval(()=>{
   if(window.afisapIsAuthenticated && window.afisapIsAuthenticated() && !afisapBackgroundSyncRunning){
     afisapBackgroundSyncRunning=true;
-    afisapSyncAllFromCloud().catch(()=>{}).finally(()=>{
-      afisapBackgroundSyncRunning=false;
-    });
+    afisapSyncAllFromCloud().catch(()=>{}).finally(()=>{afisapBackgroundSyncRunning=false;});
   }
-},30000);
+},120000);
 
 
 (function(){
@@ -5464,10 +7558,12 @@ document.getElementById('notificationButton')?.addEventListener('click',()=>{nav
       }
     });
 
-    document.getElementById("removeAdminProfilePhoto")?.addEventListener("click",()=>{
+    document.getElementById("removeAdminProfilePhoto")?.addEventListener("click",async()=>{
+      const result=await afisapCloudJsonp({action:"adminProfileSet",fileId:"",clear:"1"}).catch(()=>null);
+      if(!result?.success){alert("Administrator photo was not removed because the central system did not confirm the change.");return;}
       d.adminProfile=d.adminProfile||{};
       d.adminProfile.photo="";
-      localStorage.setItem(K,JSON.stringify(d));
+      d.adminProfile.photoFileId="";
       refreshAdminAvatar();
       document.getElementById("modal")?.classList.remove("show");
     });

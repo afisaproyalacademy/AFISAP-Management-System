@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f3b70">
+  <title>AFISAP Royal Academy — Parent Portal</title>
+  <link rel="stylesheet" href="parent.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <img src="../afisap_royal_academy_logo.png" alt="AFISAP Royal Academy crest">
+      <div><strong id="schoolName">AFISAP ROYAL ACADEMY</strong><span id="schoolMotto">LEARNING TO LEARN</span></div>
+    </div>
+    <button id="menuBtn" class="menu-btn" type="button" aria-label="Open navigation">☰</button>
+    <nav id="nav">
+      <button data-view="home" class="active">🏠 Home</button>
+      <button data-view="announcements">📢 Announcements</button>
+      <button data-view="assignments">📚 Assignments</button>
+      <button data-view="attendance">📝 Attendance</button>
+      <button data-view="notices">📅 Notices</button>
+      <button data-view="school">ℹ️ School Information</button>
+    </nav>
+  </header>
+  <main>
+    <section class="hero parent-hero-slider" aria-label="AFISAP Royal Academy Parent Portal highlights">
+      <div class="slider-media" id="parentSlider">
+        <img class="slider-image active" src="assets/parent-slide-1.png" alt="Teacher enjoying a warm classroom moment with children">
+        <img class="slider-image" src="assets/parent-slide-2.png" alt="Student writing attentively in class">
+        <img class="slider-image" src="assets/parent-slide-3.png" alt="Young learner in front of a mathematics board">
+        <div class="slider-overlay"></div>
+        <div class="slider-content">
+          <p class="eyebrow">AFISAP ROYAL ACADEMY</p>
+          <h1>PARENT PORTAL</h1>
+          <p>Welcome to the AFISAP Royal Academy Parent &amp; School Information Portal.</p>
+        </div>
+        <button class="slider-arrow prev" id="sliderPrev" type="button" aria-label="Previous image">‹</button>
+        <button class="slider-arrow next" id="sliderNext" type="button" aria-label="Next image">›</button>
+        <div class="slider-dots" id="sliderDots" aria-label="Slideshow navigation">
+          <button class="slider-dot active" type="button" data-slide="0" aria-label="Show image 1"></button>
+          <button class="slider-dot" type="button" data-slide="1" aria-label="Show image 2"></button>
+          <button class="slider-dot" type="button" data-slide="2" aria-label="Show image 3"></button>
+        </div>
+      </div>
+    </section>
+    <div id="status" class="status">Loading latest school information…</div>
+    <div id="app"></div>
+  </main>
+  <footer class="parent-footer">
+    <div class="footer-school"><strong id="footerSchool">AFISAP Royal Academy</strong><span>Learning to Learn</span></div>
+    <div class="footer-copy">© 2026 AFISAP Royal Academy</div>
+    <div class="footer-credit">System Designed by <a href="https://mr-chael-it-department.appiatusr.chatgpt.site/" target="_blank" rel="noopener noreferrer">Mr Chael I.T Department</a></div>
+  </footer>
+  <script src="parent.js"></script>
+</body>
+</html>

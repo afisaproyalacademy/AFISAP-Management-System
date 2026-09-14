@@ -1,0 +1,30 @@
+AFISAP FEES & TEXTBOOKS UPGRADE V2 — STUDENT-SPECIFIC BULK FEE ACCOUNTS
+
+Purpose:
+- Solve the problem of printing all student/class report cards while preserving each student's own fee Due/Paid/Balance.
+- Bulk assignment now opens a review screen before saving.
+- A standard amount is prefilled for every target student, so the administrator does not enter students one by one.
+- The administrator can change only exceptional students (for example Kwaku GHS 60 and Ama GHS 200) before one bulk save.
+- Each student receives a separate fee record keyed by Student ID + Fee Item + Academic Year + Term.
+- Existing records for the same student/fee/year/term can be skipped.
+- Bulk cloud saving continues to use the existing Fees-only bulkCreateFees endpoint.
+- Official fixed fee amounts are available for bulk assignment even when the administrator has not manually configured that fee item:
+  Admission GHS 200; Tuition GHS 400; School T-Shirt GHS 80; Sanitary GHS 50; First Aid GHS 50; PTA GHS 50; Textbook GHS 550.
+- Variable/range/daily items (School Uniform, Daily Canteen, Daily T&T) do not receive an invented amount; the administrator enters the actual amount due.
+- The existing individual fee/payment/edit/delete functionality is preserved.
+- The existing report-card fee engine reads the student's own fee records for the selected reporting period, so bulk report printing automatically shows the correct financial data for each student.
+
+Workflow:
+1. Choose class or all students.
+2. Choose fee item.
+3. Enter/accept standard amount.
+4. Choose academic year and term.
+5. Review the generated student list.
+6. Leave standard amounts unchanged for normal students.
+7. Change only exceptional students.
+8. Confirm once.
+9. System creates individual fee records and saves them to Google Sheets in one bulk request.
+10. Individual/class/all-student report printing reads those records automatically.
+
+Protected:
+- Students, Teachers/Staff, Classes & Subjects, Attendance, Teacher Attendance, Results/Marks, Login, Drive/photo handling and unrelated modules were not intentionally changed.
