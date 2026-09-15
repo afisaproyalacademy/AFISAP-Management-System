@@ -1340,6 +1340,10 @@ async function deleteTeacherPost(postId,title){
    const r=await writePayload("deletepost",{id});
    if(!r?.success)throw new Error(r?.error||"Post could not be deleted.");
    state.posts=(state.posts||[]).filter(p=>String(p["Announcement ID"]||"").trim()!==id);
+   try{
+     const fresh=await api("posts");
+     if(fresh?.success)state.posts=fresh.posts||[];
+   }catch(ignore){}
    await teacherFinishDeletePostLoader();setStatus("");renderPosts();
  }catch(e){teacherHideDeletePostLoader();setStatus(e.message,true);alert("Post was not deleted.\n\n"+(e?.message||e))}
 }

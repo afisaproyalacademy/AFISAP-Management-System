@@ -914,15 +914,37 @@ function teacherPortalDeletePost(request,teacher){
   if(!id)return {success:false,error:'Announcement ID is required.'};
   const sheet=teacherPortalExistingSheet('Announcements & Assignments');
   const found=findRowByField(sheet,'Announcement ID',id);
-  if(!found)return {success:true,message:'Post is already deleted.'};
+  if(!found)return {success:true,message:'Post is already deleted.',id:id};
+
   const headers=getHeaders(sheet),row=rowToObject(headers,found.row);
   const ownerId=String(row['Posted By Staff ID']||'').trim();
-  const createdBy=String(row['Created By']||'');
-  if((ownerId&&ownerId!==teacher.staffId)||(!ownerId&&createdBy.indexOf(teacher.staffId)===-1)){
+  const createdBy=String(row['Created By']||'').trim();
+  const staffId=String(teacher.staffId||'').trim();
+  const escaped=staffId.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const legacyOwned=escaped?new RegExp('(^|[^A-Za-z0-9_-])'+escaped+'([^A-Za-z0-9_-]|$)').test(createdBy):false;
+  if((ownerId&&ownerId!==staffId)||(!ownerId&&!legacyOwned)){
     return {success:false,error:'You are not authorized to delete this announcement or assignment.'};
   }
-  sheet.deleteRow(found.rowNumber);
-  return {success:true,message:'Post deleted from the shared communication Google Sheet.',id:id};
+
+  // Delete the exact shared communication row.  If Google Sheets temporarily
+  // refuses a structural row deletion, fall back to changing Status so the
+  // record immediately disappears from Parent Portal and Teacher Portal feeds.
+  try{
+    sheet.deleteRow(found.rowNumber);
+    SpreadsheetApp.flush();
+    const stillThere=findRowByField(sheet,'Announcement ID',id);
+    if(!stillThere)return {success:true,message:'Post deleted from the shared communication Google Sheet.',id:id};
+  }catch(ignore){}
+
+  const fallback=findRowByField(sheet,'Announcement ID',id);
+  if(!fallback)return {success:true,message:'Post deleted from the shared communication Google Sheet.',id:id};
+  const statusIndex=headers.indexOf('Status');
+  if(statusIndex<0)return {success:false,error:'The post could not be deleted because the communication sheet has no Status field.'};
+  sheet.getRange(fallback.rowNumber,statusIndex+1).setValue('Deleted');
+  const updatedIndex=headers.indexOf('Last Updated');
+  if(updatedIndex>=0)sheet.getRange(fallback.rowNumber,updatedIndex+1).setValue(new Date().toISOString());
+  SpreadsheetApp.flush();
+  return {success:true,message:'Post removed from all published communication feeds.',id:id};
 }
 
 function teacherPortalEnsureProfileHeaders(){
@@ -1293,6 +1315,7 @@ function teacherPortalGet(request){
 
     if(type==='posts'){
       const posts=teacherPortalReadUsedRows('Announcements & Assignments').filter(r=>{
+        if(String(r['Status']||'Published').trim().toLowerCase()!=='published')return false;
         const postedBy=String(r['Posted By Staff ID']||'').trim();
         if(postedBy)return postedBy===String(teacher.staffId||'').trim();
         const creator=String(r['Created By']||'').trim();

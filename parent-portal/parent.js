@@ -129,7 +129,26 @@ async function boot(){
  }catch(e){$("#status").className="status error";$("#status").textContent=e.message;render()}
 }
 
+async function refreshParentCommunications(){
+ try{
+   const token=parentToken();
+   const r=token
+     ? await securePost({action:"parentPortalGet",type:"announcements",authToken:token})
+     : await api({type:"announcements"});
+   if(!r?.success)return;
+   const next=r.records||[];
+   const before=JSON.stringify(state.announcements||[]),after=JSON.stringify(next);
+   if(before!==after){
+     state.announcements=next;
+     if(["home","announcements","assignments","posts"].includes(state.view))render();
+   }
+ }catch(ignore){}
+}
+
 document.querySelectorAll("nav button[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;$("#nav").classList.remove("open");render()});$("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");boot();
+// Keep Parent Portal communication synchronized with Admin/Teacher publishing
+// without requiring parents to manually refresh the page.
+setInterval(refreshParentCommunications,15000);
 
 
 /* Parent Portal hero slider — visual only; no API or data-sync changes. */
