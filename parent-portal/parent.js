@@ -57,7 +57,7 @@ function render(){
   if(state.view==="home"){const anns=published("Announcement").slice(0,3),ass=published("Assignment").slice(0,3);app.innerHTML=`<div class="grid"><section><h2>Latest Announcements</h2>${anns.length?anns.map(x=>card(x,"announcement")).join(""):`<div class="empty">No current announcements.</div>`}</section><section><h2>Latest Assignments</h2>${ass.length?ass.map(x=>card(x,"assignment")).join(""):`<div class="empty">No current assignments.</div>`}</section></div>`}
   if(state.view==="announcements"){const items=published("Announcement");app.innerHTML=`<h2>📢 School Announcements</h2><div class="grid">${items.length?items.map(x=>card(x,"announcement")).join(""):`<div class="empty">No published announcements.</div>`}</div>`}
   if(state.view==="notices"){renderCalendarNotices(app)}
-  if(state.view==="assignments"){app.innerHTML=`<h2>📚 Home Assignments</h2><div class="filters"><label>Class<select id="classFilter"><option value="">All Classes</option>${state.classes.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label><label>Subject<select id="subjectFilter"><option value="">All Subjects</option>${state.subjects.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div><div id="assignmentList"></div>`;const draw=()=>{const c=$("#classFilter").value,s=$("#subjectFilter").value;const items=published("Assignment").filter(x=>(!c||x.className===c)&&(!s||x.subject===s));$("#assignmentList").innerHTML=`<div class="grid">${items.length?items.map(x=>card(x,"assignment")).join(""):`<div class="empty">No assignments match these filters.</div>`}</div>`;wireAttachments()};$("#classFilter").onchange=draw;$("#subjectFilter").onchange=draw;draw()}
+  if(state.view==="assignments"){const items=published("Assignment");app.innerHTML=`<h2>📚 Home Assignments</h2><p class="muted">Published assignments appear here automatically. Each assignment shows the class, subject, date posted and due date supplied by the teacher.</p><div class="grid">${items.length?items.map(x=>card(x,"assignment")).join(""):`<div class="empty">No published assignments are available yet.</div>`}</div>`;wireAttachments()}
   if(state.view==="attendance"){
     const authenticated=!!parentToken()&&!!state.parentStudent;
     app.innerHTML=`<h2>📝 Student Attendance</h2><div class="card">${authenticated?`
@@ -148,7 +148,7 @@ async function refreshParentCommunications(){
 document.querySelectorAll("nav button[data-view]").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;$("#nav").classList.remove("open");render()});$("#menuBtn").onclick=()=>$("#nav").classList.toggle("open");boot();
 // Keep Parent Portal communication synchronized with Admin/Teacher publishing
 // without requiring parents to manually refresh the page.
-setInterval(refreshParentCommunications,15000);
+setInterval(refreshParentCommunications,5000);
 
 
 /* Parent Portal hero slider — visual only; no API or data-sync changes. */

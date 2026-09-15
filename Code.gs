@@ -1546,6 +1546,11 @@ function parentPortalGet(request){
         .filter(r=>{
           const target=String(r['Target Audience']||'Entire School').trim().toLowerCase();
           const cls=String(r['Class']||'').trim();
+          const postType=String(r['Type']||'Announcement').trim().toLowerCase();
+          // Published assignments are intentionally visible in the Parent Portal
+          // without a class/subject filter. The assignment card itself carries the
+          // teacher-selected Class, Subject, Posted Date and Due Date.
+          if(postType==='assignment')return true;
           const schoolWide=!cls||target==='entire school'||target==='all'||target==='school';
           return schoolWide || (!!verifiedClass&&cls.toLowerCase()===verifiedClass.toLowerCase());
         })
@@ -1696,6 +1701,10 @@ function parentPortalGet(request){
         if(String(r['Status']||'Published').trim().toLowerCase()!=='published')return false;
         const target=String(r['Target Audience']||'Entire School').trim().toLowerCase();
         const cls=String(r['Class']||'').trim();
+        const postType=String(r['Type']||'Announcement').trim().toLowerCase();
+        // Attachments belonging to published assignments follow the same Parent
+        // Portal visibility rule as the assignment itself.
+        if(postType==='assignment')return true;
         const schoolWide=!cls||target==='entire school'||target==='all'||target==='school';
         return schoolWide || (!!verifiedClass&&cls.toLowerCase()===verifiedClass.toLowerCase());
       });
